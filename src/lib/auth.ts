@@ -16,27 +16,41 @@ export interface AuthenticatedUser {
   createdAt: Date;
 }
 
+export type AuthResult =
+  | { user: AuthenticatedUser; error: null; status: 200 }
+  | { user: null; error: { code: string; message: string }; status: 401 | 403 };
+
 /**
- * Extracts and verifies the Bearer token from the request Authorization header.
- * Queries the database to guarantee the user exists and the account is active.
- * Returns the safe AuthenticatedUser or null if authentication fails.
+ * Extracts and verifies Bearer token, distinguishing between authentication failures (401)
+ * and inactive / suspended accounts (403).
  */
-export async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser | null> {
+export async function authenticateRequest(req: NextRequest): Promise<AuthResult> {
   const authHeader = req.headers.get("authorization");
   if (!authHeader) {
-    return null;
+    return {
+      user: null,
+      error: { code: "UNAUTHORIZED", message: "Authentication is required" },
+      status: 401,
+    };
   }
 
-  // Must follow "Bearer <token>" format
   const parts = authHeader.split(" ");
   if (parts.length !== 2 || parts[0] !== "Bearer" || !parts[1]) {
-    return null;
+    return {
+      user: null,
+      error: { code: "UNAUTHORIZED", message: "Invalid authorization header format" },
+      status: 401,
+    };
   }
 
   const token = parts[1].trim();
   const payload = verifyJwt<JwtPayload>(token);
   if (!payload || !payload.sub) {
-    return null;
+    return {
+      user: null,
+      error: { code: "UNAUTHORIZED", message: "Invalid or expired authentication token" },
+      status: 401,
+    };
   }
 
   try {
@@ -60,27 +74,56 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<Authentica
       },
     });
 
-    // Check account existence and active status
-    if (!user || !user.isActive) {
-      return null;
+    if (!user) {
+      return {
+        user: null,
+        error: { code: "UNAUTHORIZED", message: "Authenticated user not found" },
+        status: 401,
+      };
+    }
+
+    if (!user.isActive) {
+      return {
+        user: null,
+        error: { code: "FORBIDDEN", message: "Your account is inactive or suspended." },
+        status: 403,
+      };
     }
 
     return {
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      role: user.role,
-      isActive: user.isActive,
-      isEmailVerified: user.isEmailVerified,
-      hasSellerProfile: !!user.sellerProfile,
-      sellerStatus: user.sellerProfile?.status ?? null,
-      avatarUrl: user.avatarUrl,
-      createdAt: user.createdAt,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified,
+        hasSellerProfile: !!user.sellerProfile,
+        sellerStatus: user.sellerProfile?.status ?? null,
+        avatarUrl: user.avatarUrl,
+        createdAt: user.createdAt,
+      },
+      error: null,
+      status: 200,
     };
   } catch (error) {
     console.error("[AUTH_MIDDLEWARE_ERROR]", error);
-    return null;
+    return {
+      user: null,
+      error: { code: "UNAUTHORIZED", message: "Authentication verification failed" },
+      status: 401,
+    };
   }
+}
+
+/**
+ * Extracts and verifies the Bearer token from the request Authorization header.
+ * Queries the database to guarantee the user exists and the account is active.
+ * Returns the safe AuthenticatedUser or null if authentication fails.
+ */
+export async function getAuthenticatedUser(req: NextRequest): Promise<AuthenticatedUser | null> {
+  const auth = await authenticateRequest(req);
+  return auth.user;
 }
 
 /**
