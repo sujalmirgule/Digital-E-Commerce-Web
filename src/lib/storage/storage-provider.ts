@@ -90,6 +90,7 @@ export interface StorageProvider {
   }): Promise<{
     downloadUrl: string;
     expiresAt: string;
+    expiresInSeconds: number;
     provider: string;
   }>;
 }

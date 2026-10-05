@@ -18,6 +18,7 @@
     "test:checkout": "tsx scripts/test-checkout.ts",
     "test:verify": "tsx scripts/test-payment-verification.ts",
     "test:entitlements": "tsx scripts/test-entitlements-library.ts",
+    "test:download": "tsx scripts/test-secure-download.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
   },

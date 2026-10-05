@@ -1401,18 +1401,22 @@ async function main() {
   });
 
   await runTest("55. [Feature 12 Barrier] No download endpoints exposed or fulfilled by Feature 12", async () => {
-    // Feature 12 does not implement /api/v1/buyer/downloads/:fileId/url
-    // Calling it directly returns 404
-    const res = await fetch("http://localhost:3000/api/v1/buyer/downloads/test/url", {
-      headers: { Authorization: buyerToken },
-    }).catch(() => null);
-    // Even without dev server running, verify route file doesn't exist
-    const routeExists = await import("fs").then((fs) =>
-      fs.existsSync("src/app/api/v1/buyer/downloads")
+    // Feature 12 provisioning does not expose or fulfill downloads directly
+    const res = await provisionOrderHandler(
+      makeReq(
+        `http://localhost/api/v1/buyer/orders/${validOrderA.id}/provision`,
+        "POST",
+        {},
+        buyerToken
+      ),
+      { params: { orderId: validOrderA.id } }
     );
+    const pData = await parseJson(res);
+    const pStr = JSON.stringify(pData);
+    const hasDownloadUrl = pStr.includes("downloadUrl") || pStr.includes("/api/v1/internal/storage/download");
     return {
-      passed: !routeExists,
-      details: `Download route directory exists: ${routeExists}`,
+      passed: !hasDownloadUrl,
+      details: "Feature 12 provisioning does not return download URLs directly",
     };
   });
 

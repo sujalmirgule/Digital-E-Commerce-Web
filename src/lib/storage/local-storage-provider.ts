@@ -26,6 +26,7 @@ import path from "path";
 import fs from "fs/promises";
 import { existsSync, mkdirSync } from "fs";
 import type { StorageProvider, UploadAuthorization, ObjectMetadata } from "./storage-provider";
+import { generateDownloadSignature } from "./download-signer";
 
 // Storage root: <project_root>/storage/private/
 // This path is resolved at module load time so all methods use the same anchor.
@@ -101,8 +102,8 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async objectExists(objectKey: string): Promise<boolean> {
+    const filePath = resolveStoragePath(objectKey);
     try {
-      const filePath = resolveStoragePath(objectKey);
       await fs.access(filePath);
       return true;
     } catch {
@@ -142,6 +143,22 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   /**
+   * Read raw bytes from the local store at the given objectKey.
+   * Internal method for file streaming.
+   */
+  async readObject(objectKey: string): Promise<Buffer> {
+    const filePath = resolveStoragePath(objectKey);
+    return fs.readFile(filePath);
+  }
+
+  /**
+   * Returns resolved filesystem path (strictly for internal streaming, never exposed).
+   */
+  resolvePath(objectKey: string): string {
+    return resolveStoragePath(objectKey);
+  }
+
+  /**
    * Write raw bytes to the local store at the given objectKey.
    * Called by the internal upload handler — NOT part of the StorageProvider interface
    * because cloud providers handle bytes directly via presigned URLs.
@@ -158,22 +175,42 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   /**
-   * Generate download authorization for local development.
-   * Implements future compatibility for buyer downloads.
+   * Generate time-limited signed download authorization for local development.
+   * Emulates production S3/R2 presigned GET URL with short-lived expiration (15 min)
+   * and HMAC-SHA256 signature.
    */
   async authorizeDownload(params: {
     objectKey: string;
     originalFilename?: string;
     expiresInSeconds?: number;
-  }): Promise<{ downloadUrl: string; expiresAt: string; provider: string }> {
-    const { objectKey, expiresInSeconds = 900 } = params;
+  }): Promise<{
+    downloadUrl: string;
+    expiresAt: string;
+    expiresInSeconds: number;
+    provider: string;
+  }> {
+    const { objectKey, originalFilename, expiresInSeconds = 900 } = params;
     resolveStoragePath(objectKey);
-    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
+
+    const nowUnix = Math.floor(Date.now() / 1000);
+    const expiresUnix = nowUnix + expiresInSeconds;
+    const expiresAt = new Date(expiresUnix * 1000).toISOString();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+    const signature = generateDownloadSignature(objectKey, expiresUnix, originalFilename);
+
+    const queryParams = new URLSearchParams({
+      expires: expiresUnix.toString(),
+      sig: signature,
+    });
+    if (originalFilename) {
+      queryParams.set("filename", originalFilename);
+    }
+
     return {
-      downloadUrl: `${appUrl}/api/v1/internal/storage/download/${encodeURIComponent(objectKey)}`,
+      downloadUrl: `${appUrl}/api/v1/internal/storage/download/${encodeURIComponent(objectKey)}?${queryParams.toString()}`,
       expiresAt,
+      expiresInSeconds,
       provider: "local",
     };
   }
