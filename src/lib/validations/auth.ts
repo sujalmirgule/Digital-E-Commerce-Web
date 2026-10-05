@@ -37,3 +37,28 @@ export const signupSchema = z
   });
 
 export type SignupInput = z.infer<typeof signupSchema>;
+
+export const loginSchema = z
+  .object({
+    email: z
+      .string({
+        required_error: "Email is required",
+        invalid_type_error: "Email must be a string",
+      })
+      .trim()
+      .toLowerCase()
+      .email("Please provide a valid email address")
+      .max(255, "Email cannot exceed 255 characters"),
+    password: z
+      .string({
+        required_error: "Password is required",
+        invalid_type_error: "Password must be a string",
+      })
+      .min(1, "Password is required")
+      .max(100, "Password cannot exceed 100 characters"),
+  })
+  .strict({
+    message: "Unexpected fields were included in the request",
+  });
+
+export type LoginInput = z.infer<typeof loginSchema>;
