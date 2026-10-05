@@ -17,7 +17,7 @@ interface Notification {
 
 interface NotificationBellProps {
   token: string | null;
-  accentColor?: "emerald" | "violet" | "blue";
+  accentColor?: "emerald" | "violet" | "blue" | "orange";
   notificationsPageHref?: string;
 }
 
@@ -63,14 +63,18 @@ export default function NotificationBell({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const badgeClass =
-    accentColor === "emerald"
+    accentColor === "orange"
+      ? "bg-orange-500"
+      : accentColor === "emerald"
       ? "bg-emerald-500"
       : accentColor === "violet"
       ? "bg-violet-500"
       : "bg-blue-500";
 
   const linkClass =
-    accentColor === "emerald"
+    accentColor === "orange"
+      ? "text-orange-400 hover:text-orange-300"
+      : accentColor === "emerald"
       ? "text-emerald-400 hover:text-emerald-300"
       : accentColor === "violet"
       ? "text-violet-400 hover:text-violet-300"

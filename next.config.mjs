@@ -6,6 +6,7 @@ const nextConfig = {
     workerThreads: false,
     cpus: 1,
   },
+
   async headers() {
     return [
       {

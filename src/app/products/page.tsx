@@ -18,6 +18,8 @@ import {
   Layers,
   Check,
 } from "lucide-react";
+import { MarketplaceNavbar } from "@/components/ui/MarketplaceNavbar";
+import { MarketplaceFooter } from "@/components/ui/MarketplaceFooter";
 
 interface ProductItem {
   id: string;
@@ -256,32 +258,33 @@ function ProductsDiscoveryContent() {
   ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#06080d] text-slate-100 font-sans selection:bg-orange-500 selection:text-white">
+      <MarketplaceNavbar />
       {/* ── Top Hero / Search Banner ── */}
-      <div className="relative border-b border-slate-800 bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 px-4 py-8 sm:px-6 sm:py-12">
+      <div className="relative border-b border-slate-800/80 bg-gradient-to-b from-[#090d16] via-[#090d16]/90 to-[#06080d] px-4 pt-28 pb-10 sm:px-6 sm:pb-14">
         <div className="max-w-7xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
                 <Sparkles className="w-3.5 h-3.5" />
-                Feature 22 Discovery Engine
+                Curated Marketplace Catalog
               </span>
-              <span className="hidden sm:inline-block text-xs text-slate-500 font-mono">
-                PostgreSQL Indexed Search
+              <span className="hidden sm:inline-block text-xs text-slate-400 font-mono">
+                Verified Creator Assets
               </span>
             </div>
             <Link
               href="/"
-              className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-900 transition-colors"
+              className="text-xs font-mono text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-900 transition-colors"
             >
-              ← Back to Portal
+              ← Back to Home
             </Link>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-4xl font-light text-white tracking-tight">
             Discover Premium Digital Assets
           </h1>
-          <p className="text-sm text-slate-400 max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-400 max-w-2xl font-light">
             Explore curated design systems, templates, developer kits, and production-ready software
             from verified independent creators.
           </p>
@@ -297,7 +300,7 @@ function ProductsDiscoveryContent() {
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Search templates, UI kits, codebases, tags..."
                 maxLength={100}
-                className="w-full bg-slate-900/90 border border-slate-700/80 rounded-2xl pl-12 pr-28 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-xl transition-all"
+                className="w-full bg-slate-900/90 border border-slate-800 rounded-2xl pl-12 pr-28 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-orange-500/50 focus:border-orange-500/60 shadow-xl transition-all font-light"
               />
               {searchInput && (
                 <button
@@ -315,7 +318,7 @@ function ProductsDiscoveryContent() {
               <button
                 type="submit"
                 id="search-button"
-                className="absolute right-2 px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/30 active:scale-95"
+                className="absolute right-2 px-5 py-2 rounded-xl text-xs font-mono font-medium bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white transition-all shadow-md shadow-orange-600/30 active:scale-95"
               >
                 Search
               </button>
@@ -327,9 +330,9 @@ function ProductsDiscoveryContent() {
             <div className="flex items-center gap-2 overflow-x-auto pt-2 pb-1 no-scrollbar">
               <button
                 onClick={() => updateFilters({ category: null })}
-                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-mono transition-all ${
                   !urlCategory
-                    ? "bg-indigo-600 text-white shadow-sm"
+                    ? "bg-orange-600 text-white shadow-sm font-medium"
                     : "bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800"
                 }`}
               >
@@ -341,9 +344,9 @@ function ProductsDiscoveryContent() {
                   <button
                     key={cat.id}
                     onClick={() => updateFilters({ category: isSelected ? null : cat.slug })}
-                    className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-mono transition-all ${
                       isSelected
-                        ? "bg-indigo-600 text-white shadow-sm"
+                        ? "bg-orange-600 text-white shadow-sm font-medium"
                         : "bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800"
                     }`}
                   >
@@ -914,6 +917,7 @@ function ProductsDiscoveryContent() {
           </main>
         </div>
       </div>
+      <MarketplaceFooter />
     </div>
   );
 }
@@ -922,8 +926,8 @@ export default function ProductsDiscoveryPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" />
+        <div className="min-h-screen bg-[#06080d] text-slate-100 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
         </div>
       }
     >

@@ -54,7 +54,7 @@ async function main() {
       const output = execSync(`npx tsx "${suite}"`, {
         encoding: "utf-8",
         stdio: ["ignore", "pipe", "pipe"],
-        env: { ...process.env, NODE_ENV: "test" },
+        env: { ...process.env, NODE_ENV: "test", NODE_OPTIONS: "--max-old-space-size=4096" },
       });
 
       // Parse output for PASSED/FAILED/SKIPPED patterns
@@ -116,7 +116,7 @@ async function main() {
       totalFailed += 1;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    await new Promise((resolve) => setTimeout(resolve, 1200));
   }
 
   console.log("\n=================================================================");
