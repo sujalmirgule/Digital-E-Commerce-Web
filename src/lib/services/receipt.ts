@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { getStorageProvider } from "@/lib/storage/local-storage-provider";
 import { UpdateReceiptTemplateInput } from "@/lib/validations/receipt";
+import { createNotification } from "@/lib/services/notification";
 import path from "path";
 import fs from "fs/promises";
 
@@ -613,6 +614,17 @@ export async function generateReceiptForOrder(orderId: string) {
     },
     update: {},
   });
+
+  // 10. Notify buyer that receipt is ready (async, non-blocking, idempotent)
+  createNotification({
+    userId: order.buyerId,
+    type: "RECEIPT_GENERATED",
+    title: "Your Receipt is Ready",
+    message: `Receipt ${receiptId} for your order has been generated and is available for download.`,
+    linkUrl: `/buyer/orders/${order.id}/receipt`,
+    dedupKey: `receipt_generated_${receiptId}`,
+    metadata: { receiptId, invoiceNumber },
+  }).catch((err) => console.error("[RECEIPT_NOTIFICATION_ERROR]", err));
 
   return {
     success: true,

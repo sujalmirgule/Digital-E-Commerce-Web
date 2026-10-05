@@ -55,18 +55,18 @@ export default function BuyerOrdersPage() {
         </div>
 
         {/* Status filter tabs */}
-        <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-lg text-xs">
-          {["", "PAID", "PENDING", "CANCELLED"].map((status) => (
+        <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-lg text-xs overflow-x-auto">
+          {["", "PAID", "PENDING", "REFUND_REQUESTED", "REFUNDED", "CANCELLED"].map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
                 statusFilter === status
                   ? "bg-indigo-600 text-white shadow-sm"
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              {status || "All Orders"}
+              {status ? status.replace("_", " ") : "All Orders"}
             </button>
           ))}
         </div>
@@ -128,12 +128,16 @@ export default function BuyerOrdersPage() {
                     className={`px-2 py-0.5 text-[10px] font-semibold uppercase rounded ${
                       order.status === "PAID"
                         ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                        : order.status === "PENDING"
+                        : order.status === "PENDING" || order.status === "PAYMENT_PROCESSING"
                         ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        : order.status === "REFUND_REQUESTED"
+                        ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                        : order.status === "REFUNDED"
+                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                         : "bg-red-500/20 text-red-400 border border-red-500/30"
                     }`}
                   >
-                    {order.status}
+                    {order.status.replace("_", " ")}
                   </span>
                   <span className="text-xs text-slate-400">
                     · {new Date(order.createdAt).toLocaleDateString()} at{" "}

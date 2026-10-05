@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getAuthenticatedAdmin } from "@/lib/auth";
 import { getStorageProvider } from "@/lib/storage/local-storage-provider";
 import { apiSuccess, apiError } from "@/lib/api-response";
+import { createNotification } from "@/lib/services/notification";
 
 export const dynamic = "force-dynamic";
 
@@ -184,6 +185,16 @@ async function handleApprove(
       }
       throw err;
     }
+
+    // Notify seller their product was approved (async, non-blocking, idempotent)
+    createNotification({
+      userId: product.seller.userId,
+      type: "PRODUCT_APPROVED",
+      title: "Product Approved & Published!",
+      message: `Your product '${product.title}' has been reviewed and is now published on the marketplace.`,
+      linkUrl: `/products/${updatedProduct?.slug}`,
+      dedupKey: `product_approved_${product.id}`,
+    }).catch((err) => console.error("[PRODUCT_APPROVAL_NOTIFICATION_ERROR]", err));
 
     return apiSuccess(
       { product: updatedProduct },

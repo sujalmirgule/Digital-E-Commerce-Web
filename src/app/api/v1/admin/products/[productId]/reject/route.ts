@@ -4,6 +4,7 @@ import { getAuthenticatedAdmin } from "@/lib/auth";
 import { adminRejectProductSchema } from "@/lib/validations/product";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { ZodError } from "zod";
+import { createNotification } from "@/lib/services/notification";
 
 export const dynamic = "force-dynamic";
 
@@ -173,6 +174,16 @@ async function handleReject(
       }
       throw err;
     }
+
+    // Notify seller their product was rejected (async, non-blocking, idempotent)
+    createNotification({
+      userId: product.seller.userId,
+      type: "PRODUCT_REJECTED",
+      title: "Product Requires Revision",
+      message: `Your product '${product.title}' was not approved. Reason: ${validatedData.rejectionReason.trim()}`,
+      linkUrl: "/seller/products",
+      dedupKey: `product_rejected_${product.id}`,
+    }).catch((err) => console.error("[PRODUCT_REJECTION_NOTIFICATION_ERROR]", err));
 
     return apiSuccess(
       { product: updatedProduct },

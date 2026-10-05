@@ -7,6 +7,7 @@ import { verifyPaymentSignature } from "@/lib/payment/razorpay";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { settleSellerEarnings } from "@/lib/services/seller-earnings";
 import { generateReceiptForOrder } from "@/lib/services/receipt";
+import { createNotification } from "@/lib/services/notification";
 
 export const dynamic = "force-dynamic";
 
@@ -247,6 +248,40 @@ export async function POST(req: NextRequest) {
     generateReceiptForOrder(updatedOrder.id).catch((err) => {
       console.error("[RECEIPT_GENERATION_ERROR]", err);
     });
+
+    // 9. Trigger Feature 20 payment notifications (async, non-blocking)
+    // Notify the buyer their payment succeeded
+    createNotification({
+      userId: authUser.id,
+      type: "PAYMENT_SUCCESS",
+      title: "Payment Successful",
+      message: `Your payment was confirmed. Order #${updatedOrder.id} is ready.`,
+      linkUrl: `/buyer/orders/${updatedOrder.id}`,
+      dedupKey: `payment_success_${updatedOrder.id}`,
+      metadata: { orderId: updatedOrder.id, amountPaise: updatedOrder.totalAmountPaise },
+    }).catch((err) => console.error("[PAYMENT_NOTIFICATION_BUYER_ERROR]", err));
+
+    // Notify the seller(s) of a new purchase — fetch order items to get seller IDs
+    prisma.orderItem.findMany({
+      where: { orderId: updatedOrder.id },
+      include: { product: { include: { seller: { select: { userId: true } } } } },
+    }).then((items) => {
+      const sellerIdSet = new Set(items.map((i) => i.product.seller.userId));
+      const sellerIds = Array.from(sellerIdSet);
+      return Promise.all(
+        sellerIds.map((sellerId) =>
+          createNotification({
+            userId: sellerId,
+            type: "NEW_SALE",
+            title: "New Sale!",
+            message: `You have a new purchase. Order #${updatedOrder.id} has been placed.`,
+            linkUrl: "/seller/orders",
+            dedupKey: `new_sale_${updatedOrder.id}_${sellerId}`,
+            metadata: { orderId: updatedOrder.id },
+          })
+        )
+      );
+    }).catch((err) => console.error("[PAYMENT_NOTIFICATION_SELLER_ERROR]", err));
 
     // 9. Check if digital downloads are provisioned (Feature 12 boundary check)
     const downloadCount = await prisma.download.count({

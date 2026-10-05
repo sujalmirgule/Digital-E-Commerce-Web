@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from "@/lib/auth";
 import { adminRejectSellerSchema } from "@/lib/validations/seller";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { ZodError } from "zod";
+import { createNotification } from "@/lib/services/notification";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +120,16 @@ async function handleReject(
         },
       })
       .catch((err) => console.error("[AUDIT_LOG_ERROR]", err));
+
+    // Send server-side notification to seller (idempotent via dedupKey)
+    createNotification({
+      userId: seller.userId,
+      type: "SELLER_REJECTED",
+      title: "Seller Application Not Approved",
+      message: `Your store application for '${updatedSeller.storeName}' was not approved. Reason: ${validatedData.rejectionReason.trim()}`,
+      linkUrl: "/seller/apply",
+      dedupKey: `seller_rejected_${seller.id}`,
+    }).catch((err) => console.error("[SELLER_REJECTION_NOTIFICATION_ERROR]", err));
 
     return apiSuccess(
       { seller: updatedSeller },

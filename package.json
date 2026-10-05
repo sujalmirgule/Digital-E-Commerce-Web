@@ -19,6 +19,7 @@
     "test:verify": "tsx scripts/test-payment-verification.ts",
     "test:entitlements": "tsx scripts/test-entitlements-library.ts",
     "test:download": "tsx scripts/test-secure-download.ts",
+    "test:refunds": "tsx scripts/test-refunds-lifecycle.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
   },

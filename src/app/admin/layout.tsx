@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AdminAuthProvider, useAdminAuth } from "./AdminAuthContext";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import {
   LayoutDashboard,
   Users,
@@ -11,6 +12,7 @@ import {
   Package,
   ShoppingBag,
   CreditCard,
+  RotateCcw,
   FileText,
   Star,
   BookOpen,
@@ -58,6 +60,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       items: [
         { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
         { name: "Payments", href: "/admin/payments", icon: CreditCard },
+        { name: "Refunds", href: "/admin/refunds", icon: RotateCcw },
         { name: "Receipts", href: "/admin/receipts", icon: FileText },
         { name: "Platform Ledger", href: "/admin/ledger", icon: BookOpen },
       ],
@@ -237,9 +240,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               </span>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-            ADMIN
-          </span>
+          <div className="flex items-center gap-1.5">
+            <NotificationBell token={token} accentColor="violet" notificationsPageHref="/notifications" />
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              ADMIN
+            </span>
+          </div>
         </div>
 
         {/* Navigation Categories */}

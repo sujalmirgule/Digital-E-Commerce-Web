@@ -55,6 +55,7 @@ enum OrderStatus {
   PAID
   FAILED
   CANCELLED
+  REFUND_REQUESTED
   REFUNDED
   PARTIALLY_REFUNDED
 }
@@ -108,6 +109,9 @@ enum NotificationType {
   PAYOUT_COMPLETED
   PAYOUT_FAILED
   ACCOUNT_ALERT
+  SELLER_APPROVED
+  SELLER_REJECTED
+  RECEIPT_GENERATED
 }
 
 enum ReportStatus {
@@ -115,6 +119,14 @@ enum ReportStatus {
   INVESTIGATING
   RESOLVED
   DISMISSED
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PROCESSED
+  FAILED
 }
 
 // -------------------------------------------------------------
@@ -145,6 +157,7 @@ model User {
   entitlements         Entitlement[]   @relation("BuyerEntitlements")
   reports              Report[]        @relation("ReportedByUser")
   auditLogs            AuditLog[]      @relation("AdminAuditLogs")
+  refundRequests       RefundRequest[] @relation("BuyerRefundRequests")
   
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
@@ -366,6 +379,9 @@ model Order {
   
   paidAt              DateTime?
   failureReason       String?
+  refundedAt          DateTime?
+  refundReason        String?
+  providerRefundId    String?
   
   // Customer info snapshot at checkout
   buyerNameSnapshot   String
@@ -380,6 +396,7 @@ model Order {
   entitlements        Entitlement[] @relation("OrderEntitlements")
   sellerEarnings      SellerEarning[]
   platformLedgers     PlatformLedger[]
+  refundRequests      RefundRequest[]
   
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -431,6 +448,10 @@ model Payment {
   currency           String        @default("INR")
   status             PaymentStatus @default(CREATED)
   method             PaymentMethod @default(UPI)
+  
+  // Refund provider metadata
+  refundId           String?
+  refundedAt         DateTime?
   
   // Additional payment metadata from Razorpay
   bank               String?
@@ -752,11 +773,16 @@ model Notification {
   message   String           @db.Text
   linkUrl   String?
   isRead    Boolean          @default(false)
+  readAt    DateTime?
+  metadata  Json?
+  dedupKey  String?          @unique
   
   createdAt DateTime         @default(now())
 
   @@index([userId])
   @@index([isRead])
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model Report {
@@ -797,3 +823,32 @@ model AuditLog {
   @@index([adminId])
   @@index([targetEntity, targetId])
 }
+
+// -------------------------------------------------------------
+// REFUNDS & ORDER LIFECYCLE (FEATURE 21)
+// -------------------------------------------------------------
+
+model RefundRequest {
+  id                  String        @id @default(cuid())
+  orderId             String
+  order               Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  buyerId             String
+  buyer               User          @relation("BuyerRefundRequests", fields: [buyerId], references: [id], onDelete: Cascade)
+  
+  reason              String        @db.Text
+  status              RefundStatus  @default(PENDING)
+  amountPaise         Int           // Order amount in paise requested for refund
+  
+  adminNotes          String?       @db.Text
+  processedByAdminId  String?
+  providerRefundId    String?
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  
+  @@index([orderId])
+  @@index([buyerId])
+  @@index([status])
+}
+

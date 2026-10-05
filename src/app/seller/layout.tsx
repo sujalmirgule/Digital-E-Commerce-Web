@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SellerAuthProvider, useSellerAuth } from "./SellerAuthContext";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 const SELLER_NAV = [
   { href: "/seller", label: "Overview", icon: "📊" },
@@ -54,13 +55,16 @@ function SellerShell({ children }: { children: React.ReactNode }) {
             {profile?.status || user?.sellerStatus || "Portal"}
           </span>
         </div>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
-          aria-label="Toggle Navigation"
-        >
-          {mobileMenuOpen ? "✕" : "☰"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <NotificationBell token={token} accentColor="emerald" />
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+            aria-label="Toggle Navigation"
+          >
+            {mobileMenuOpen ? "✕" : "☰"}
+          </button>
+        </div>
       </header>
 
       {/* Mobile Drawer */}
@@ -106,9 +110,12 @@ function SellerShell({ children }: { children: React.ReactNode }) {
             <span className="text-emerald-400 text-2xl">🏪</span>
             <span>Creator Hub</span>
           </Link>
-          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
-            Seller Studio
-          </span>
+          <div className="flex items-center gap-1">
+            <NotificationBell token={token} accentColor="emerald" />
+            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
+              Seller Studio
+            </span>
+          </div>
         </div>
 
         {/* Store Mini Profile */}

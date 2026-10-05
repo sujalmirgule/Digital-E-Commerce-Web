@@ -98,6 +98,10 @@ export interface BuyerOrderDTO {
     invoiceNumber: string;
     downloadUrl: string;
   } | null;
+  refundedAt?: string | null;
+  providerRefundId?: string | null;
+  failureReason?: string | null;
+  refundReason?: string | null;
 }
 
 export interface BuyerDownloadItemDTO {
@@ -601,6 +605,10 @@ export async function getBuyerOrderDetail(
           downloadUrl: `/api/v1/buyer/receipts/${o.receipt.id}/download`,
         }
       : null,
+    refundedAt: o.refundedAt?.toISOString() || null,
+    providerRefundId: o.providerRefundId || null,
+    failureReason: o.failureReason || null,
+    refundReason: o.refundReason || null,
   };
 
   return {

@@ -645,6 +645,10 @@ export async function getAdminOrderDetail(orderId: string) {
     razorpayOrderId: order.razorpayOrderId,
     razorpayPaymentId: order.razorpayPaymentId,
     paidAt: order.paidAt?.toISOString() || null,
+    refundedAt: order.refundedAt?.toISOString() || null,
+    refundReason: order.refundReason || null,
+    providerRefundId: order.providerRefundId || null,
+    failureReason: order.failureReason || null,
     createdAt: order.createdAt.toISOString(),
     items: order.items.map((item) => ({
       id: item.id,

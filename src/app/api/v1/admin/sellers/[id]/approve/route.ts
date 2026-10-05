@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/api-response";
+import { createNotification } from "@/lib/services/notification";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,16 @@ async function handleApprove(
         },
       })
       .catch((err) => console.error("[AUDIT_LOG_ERROR]", err));
+
+    // Send server-side notification to seller (idempotent via dedupKey)
+    createNotification({
+      userId: seller.userId,
+      type: "SELLER_APPROVED",
+      title: "Seller Application Approved!",
+      message: `Congratulations! Your store '${updatedSeller.storeName}' has been approved. You can now publish digital products.`,
+      linkUrl: "/seller",
+      dedupKey: `seller_approved_${seller.id}`,
+    }).catch((err) => console.error("[SELLER_APPROVAL_NOTIFICATION_ERROR]", err));
 
     return apiSuccess(
       { seller: updatedSeller },
