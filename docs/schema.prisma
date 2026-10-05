@@ -1,0 +1,671 @@
+// Prisma Schema for Digital Marketplace
+// Multi-vendor digital-product e-commerce platform
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// ENUMS
+// -------------------------------------------------------------
+
+enum UserRole {
+  BUYER
+  ADMIN
+}
+
+enum SellerStatus {
+  NOT_APPLIED
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ProductType {
+  DIGITAL_DOWNLOAD
+  SOFTWARE
+  BUNDLE
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+  SUSPENDED
+}
+
+enum LicenseType {
+  PERSONAL
+  COMMERCIAL
+  EXTENDED
+}
+
+enum OrderStatus {
+  PENDING
+  PAYMENT_PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  UPI
+  CARD
+  NETBANKING
+  WALLET
+  OTHER
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REVERSED
+}
+
+enum EarningStatus {
+  PENDING
+  AVAILABLE
+  PAID_OUT
+  REFUNDED_DEDUCTED
+}
+
+enum NotificationType {
+  PAYMENT_SUCCESS
+  ORDER_PLACED
+  PRODUCT_APPROVED
+  PRODUCT_REJECTED
+  PRODUCT_UPDATED
+  NEW_SALE
+  REFUND_PROCESSED
+  NEW_REVIEW
+  PAYOUT_COMPLETED
+  PAYOUT_FAILED
+  ACCOUNT_ALERT
+}
+
+enum ReportStatus {
+  PENDING
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+// -------------------------------------------------------------
+// USER & SELLER PROFILE
+// -------------------------------------------------------------
+
+model User {
+  id                   String          @id @default(cuid())
+  email                String          @unique
+  passwordHash         String
+  fullName             String
+  avatarUrl            String?
+  role                 UserRole        @default(BUYER)
+  isEmailVerified      Boolean         @default(false)
+  emailVerifyToken     String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  isActive             Boolean         @default(true)
+  
+  // Relations
+  sellerProfile        SellerProfile?
+  orders               Order[]         @relation("BuyerOrders")
+  reviews              Review[]
+  wishlists            Wishlist[]
+  followedSellers      SellerFollow[]  @relation("BuyerFollows")
+  notifications        Notification[]
+  downloads            Download[]
+  reports              Report[]        @relation("ReportedByUser")
+  auditLogs            AuditLog[]      @relation("AdminAuditLogs")
+  
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([email])
+}
+
+model SellerProfile {
+  id                 String        @id @default(cuid())
+  userId             String        @unique
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  storeName          String
+  storeSlug          String        @unique
+  bio                String?       @db.VarChar(255)
+  description        String?       @db.Text
+  logoUrl            String?
+  bannerUrl          String?
+  country            String        @default("IN")
+  websiteUrl         String?
+  socialLinks        Json?         // { "twitter": "", "github": "", "linkedin": "", "instagram": "" }
+  supportEmail       String?
+  status             SellerStatus  @default(PENDING)
+  rejectionReason    String?
+  
+  // Financial & KYC information (Securely stored / masked)
+  panNumberMasked    String?       // e.g. "ABCDE****F"
+  bankAccountLast4   String?       // e.g. "****1234"
+  bankIfsc           String?
+  bankAccountHolder  String?
+  razorpayAccountId  String?       // Razorpay Route / Linked Account ID
+  
+  // Commission override (null = platform default 10%)
+  commissionRate     Decimal?      @db.Decimal(5, 2)
+  
+  // Aggregated Metrics
+  totalRevenuePaise  BigInt        @default(0)
+  netEarningsPaise   BigInt        @default(0)
+  availableBalance   BigInt        @default(0)
+  pendingBalance     BigInt        @default(0)
+  paidOutBalance     BigInt        @default(0)
+  
+  // Relations
+  products           Product[]
+  orderItems         OrderItem[]
+  earnings           SellerEarning[]
+  payouts            Payout[]
+  followers          SellerFollow[] @relation("SellerFollowers")
+  
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([storeSlug])
+  @@index([status])
+}
+
+// -------------------------------------------------------------
+// CATEGORIES & PRODUCTS
+// -------------------------------------------------------------
+
+model Category {
+  id           String     @id @default(cuid())
+  name         String
+  slug         String     @unique
+  description  String?
+  icon         String?    // Lucide icon name or SVG
+  imageUrl     String?
+  displayOrder Int        @default(0)
+  isActive     Boolean    @default(true)
+  
+  parentId     String?
+  parent       Category?  @relation("SubCategories", fields: [parentId], references: [id], onDelete: SetNull)
+  subCategories Category[] @relation("SubCategories")
+  
+  products     Product[]
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([slug])
+}
+
+model Product {
+  id               String         @id @default(cuid())
+  sellerId         String
+  seller           SellerProfile  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  categoryId       String
+  category         Category       @relation(fields: [categoryId], references: [id])
+  
+  title            String
+  slug             String         @unique
+  shortDescription String         @db.VarChar(300)
+  description      String         @db.Text
+  productType      ProductType    @default(DIGITAL_DOWNLOAD)
+  
+  // Pricing in Indian Paise (e.g. ₹799 = 79900 paise)
+  pricePaise       Int
+  discountPricePaise Int?
+  isFree           Boolean        @default(false)
+  
+  // Licensing & Specifications
+  licenseType      LicenseType    @default(COMMERCIAL)
+  licenseTerms     String?        @db.Text
+  version          String         @default("1.0.0")
+  tags             String[]       // ["React", "Dashboard", "Tailwind"]
+  requirements     String?        @db.Text
+  fileFormats      String[]       // ["ZIP", "FIG", "PDF", "TS"]
+  demoUrl          String?
+  
+  // Publishing & Moderation
+  status           ProductStatus  @default(DRAFT)
+  rejectionReason  String?        @db.Text
+  isFeatured       Boolean        @default(false)
+  
+  // Counters for high performance
+  viewsCount       Int            @default(0)
+  salesCount       Int            @default(0)
+  ratingAvg        Decimal        @default(0.0) @db.Decimal(3, 2)
+  reviewsCount     Int            @default(0)
+  
+  // Relations
+  media            ProductMedia[]
+  files            ProductFile[]
+  versions         ProductVersion[]
+  orderItems       OrderItem[]
+  reviews          Review[]
+  wishlists        Wishlist[]
+  reports          Report[]
+  
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([slug])
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([isFeatured])
+}
+
+enum MediaType {
+  THUMBNAIL
+  GALLERY_IMAGE
+  PREVIEW_VIDEO
+}
+
+model ProductMedia {
+  id           String    @id @default(cuid())
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  type         MediaType @default(GALLERY_IMAGE)
+  url          String
+  altText      String?
+  displayOrder Int       @default(0)
+  
+  createdAt    DateTime  @default(now())
+
+  @@index([productId])
+}
+
+model ProductFile {
+  id               String     @id @default(cuid())
+  productId        String
+  product          Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  originalFilename String
+  fileSize         BigInt     // Bytes
+  mimeType         String
+  storageKey       String     // S3 / Cloudflare R2 private bucket key
+  sha256Checksum   String?
+  
+  downloadLimit    Int?       // Null = unlimited per buyer
+  version          String     @default("1.0.0")
+  
+  downloads        Download[]
+  
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([productId])
+}
+
+model ProductVersion {
+  id           String    @id @default(cuid())
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  version      String    // e.g. "1.1.0"
+  changelog    String    @db.Text
+  releaseDate  DateTime  @default(now())
+
+  @@index([productId])
+}
+
+// -------------------------------------------------------------
+// ORDERS, CHECKOUT & PAYMENTS (RAZORPAY)
+// -------------------------------------------------------------
+
+model Order {
+  id                  String        @id // ORD-YYYYMMDD-XXXX
+  buyerId             String
+  buyer               User          @relation("BuyerOrders", fields: [buyerId], references: [id])
+  
+  // Financial Totals in Paise
+  subtotalPaise       Int
+  discountPaise       Int           @default(0)
+  platformFeePaise    Int           // Total marketplace commission
+  totalAmountPaise    Int           // Final amount charged to customer
+  currency            String        @default("INR")
+  
+  status              OrderStatus   @default(PENDING)
+  
+  // Razorpay Transaction References
+  razorpayOrderId     String        @unique // order_xxxxxxxxxxxxxx
+  razorpayPaymentId   String?       @unique // pay_xxxxxxxxxxxxxx
+  razorpaySignature   String?
+  
+  paidAt              DateTime?
+  failureReason       String?
+  
+  // Customer info snapshot at checkout
+  buyerNameSnapshot   String
+  buyerEmailSnapshot  String
+  
+  // Relations
+  items               OrderItem[]
+  payments            Payment[]
+  receipt             Receipt?
+  downloads           Download[]
+  sellerEarnings      SellerEarning[]
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([buyerId])
+  @@index([status])
+  @@index([razorpayOrderId])
+}
+
+model OrderItem {
+  id                   String        @id @default(cuid())
+  orderId              String
+  order                Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId            String
+  product              Product       @relation(fields: [productId], references: [id])
+  
+  sellerId             String
+  seller               SellerProfile @relation(fields: [sellerId], references: [id])
+  
+  // Financial Snapshot in Paise
+  productTitle         String
+  pricePaise           Int
+  platformFeePaise     Int           // Platform fee calculated for this item
+  sellerEarningsPaise  Int           // Net earned by seller (price - platformFee)
+  licenseType          LicenseType   @default(COMMERCIAL)
+  
+  createdAt            DateTime      @default(now())
+
+  @@index([orderId])
+  @@index([sellerId])
+  @@index([productId])
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  orderId            String
+  order              Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  razorpayOrderId    String
+  razorpayPaymentId  String        @unique
+  razorpaySignature  String?
+  
+  amountPaise        Int
+  currency           String        @default("INR")
+  status             PaymentStatus @default(CREATED)
+  method             PaymentMethod @default(UPI)
+  
+  // Additional payment metadata from Razorpay
+  bank               String?
+  wallet             String?
+  vpa                String?       // UPI ID (e.g., user@okhdfcbank)
+  cardLast4          String?
+  cardNetwork        String?
+  
+  errorCode          String?
+  errorDescription   String?
+  
+  rawWebhookPayload  Json?         // Full audit log of the webhook event
+  verifiedAt         DateTime?
+  
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([razorpayPaymentId])
+}
+
+model Receipt {
+  id                 String    @id // REC-YYYYMMDD-XXXX
+  orderId            String    @unique
+  order              Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  invoiceNumber      String    @unique
+  pdfStorageKey      String?   // S3 path to generated invoice PDF
+  
+  buyerName          String
+  buyerEmail         String
+  
+  amountPaidPaise    Int
+  paymentMethod      String
+  paymentId          String
+  
+  issuedAt           DateTime  @default(now())
+
+  @@index([orderId])
+  @@index([invoiceNumber])
+}
+
+// -------------------------------------------------------------
+// SECURE DOWNLOAD & ACCESS FULFILLMENT
+// -------------------------------------------------------------
+
+model Download {
+  id              String        @id @default(cuid())
+  orderId         String
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  buyerId         String
+  buyer           User          @relation(fields: [buyerId], references: [id])
+  
+  productFileId   String
+  productFile     ProductFile   @relation(fields: [productFileId], references: [id])
+  
+  // Access control
+  downloadCount   Int           @default(0)
+  maxDownloads    Int?          // Null = unlimited
+  lastDownloadedAt DateTime?
+  isActive        Boolean       @default(true) // Set to false if refunded
+  
+  logs            DownloadLog[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([buyerId])
+  @@index([productFileId])
+}
+
+model DownloadLog {
+  id           String    @id @default(cuid())
+  downloadId   String
+  download     Download  @relation(fields: [downloadId], references: [id], onDelete: Cascade)
+  
+  ipAddress    String?
+  userAgent    String?
+  downloadedAt DateTime  @default(now())
+
+  @@index([downloadId])
+}
+
+// -------------------------------------------------------------
+// SELLER EARNINGS & PAYOUTS
+// -------------------------------------------------------------
+
+model SellerEarning {
+  id                  String        @id @default(cuid())
+  sellerId            String
+  seller              SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  orderId             String
+  order               Order         @relation(fields: [orderId], references: [id])
+  
+  grossAmountPaise    Int
+  platformFeePaise    Int
+  netEarningsPaise    Int
+  
+  status              EarningStatus @default(PENDING)
+  availableOn         DateTime      // Clearance date (e.g. T+3 or T+7 days)
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([sellerId])
+  @@index([orderId])
+  @@index([status])
+}
+
+model Payout {
+  id                 String        @id // PO-YYYYMMDD-XXXX
+  sellerId           String
+  seller             SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  amountPaise        Int
+  status             PayoutStatus  @default(PENDING)
+  
+  // Razorpay Payouts / Route Reference
+  razorpayPayoutId   String?       @unique
+  bankAccountLast4   String
+  ifscCode           String
+  
+  processedAt        DateTime?
+  failureReason      String?
+  
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@index([sellerId])
+  @@index([status])
+}
+
+// -------------------------------------------------------------
+// REVIEWS & SOCIAL
+// -------------------------------------------------------------
+
+model Review {
+  id               String    @id @default(cuid())
+  productId        String
+  product          Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  buyerId          String
+  buyer            User      @relation(fields: [buyerId], references: [id])
+  
+  orderId          String    // Verified purchase check
+  rating           Int       // 1 to 5
+  title            String    @db.VarChar(100)
+  comment          String    @db.Text
+  
+  sellerReply      String?   @db.Text
+  sellerRepliedAt  DateTime?
+  
+  isReported       Boolean   @default(false)
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([productId, buyerId]) // One review per buyer per product
+  @@index([productId])
+  @@index([buyerId])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  buyerId   String
+  buyer     User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([buyerId, productId])
+  @@index([buyerId])
+}
+
+model SellerFollow {
+  id        String        @id @default(cuid())
+  buyerId   String
+  buyer     User          @relation("BuyerFollows", fields: [buyerId], references: [id], onDelete: Cascade)
+  
+  sellerId  String
+  seller    SellerProfile @relation("SellerFollowers", fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime      @default(now())
+
+  @@unique([buyerId, sellerId])
+  @@index([buyerId])
+  @@index([sellerId])
+}
+
+// -------------------------------------------------------------
+// NOTIFICATIONS & AUDIT
+// -------------------------------------------------------------
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type      NotificationType
+  title     String
+  message   String           @db.Text
+  linkUrl   String?
+  isRead    Boolean          @default(false)
+  
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reporterId  String
+  reporter    User         @relation("ReportedByUser", fields: [reporterId], references: [id])
+  
+  productId   String?
+  product     Product?     @relation(fields: [productId], references: [id])
+  
+  reason      String
+  description String       @db.Text
+  status      ReportStatus @default(PENDING)
+  adminNotes  String?      @db.Text
+  
+  resolvedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([reporterId])
+  @@index([productId])
+  @@index([status])
+}
+
+model AuditLog {
+  id           String    @id @default(cuid())
+  adminId      String
+  admin        User      @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  
+  action       String    // e.g. "APPROVE_PRODUCT", "SUSPEND_SELLER", "REFUND_ORDER"
+  targetEntity String    // e.g. "Product", "SellerProfile", "Order"
+  targetId     String
+  metadata     Json?
+  ipAddress    String?
+  
+  createdAt    DateTime  @default(now())
+
+  @@index([adminId])
+  @@index([targetEntity, targetId])
+}
