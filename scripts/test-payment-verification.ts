@@ -1327,20 +1327,22 @@ async function main() {
     };
   });
 
-  await runTest("51. [Feature 14 Barrier] Zero SellerEarning records created during Feature 11 payment verification", async () => {
+  await runTest("51. [Feature 14 Integrated] SellerEarning provisioned async after Feature 11 payment verification", async () => {
+    // Feature 14 is now implemented and integrated — settlement fires async after PAID.
+    // Allow brief time for the async fire-and-forget to complete.
+    await new Promise((r) => setTimeout(r, 500));
     const earningCount = await prisma.sellerEarning.count({ where: { orderId: validOrderId } });
     return {
-      passed: earningCount === 0,
-      details: `Found ${earningCount} seller earning records`,
+      passed: earningCount >= 1,
+      details: `Found ${earningCount} seller earning records (expected >= 1 after Feature 14 integration)`,
     };
   });
 
-  await runTest("52. [Feature 14 Barrier] SellerProfile balance remains untouched during Feature 11", async () => {
+  await runTest("52. [Feature 14 Integrated] SellerProfile balance updated after Feature 11 payment verification", async () => {
+    // Feature 14 is now implemented — balance should be incremented after settlement.
     const profile = await prisma.sellerProfile.findUnique({ where: { id: sellerProfileId } });
     return {
-      passed:
-        (profile?.pendingBalance === BigInt(0) || Number(profile?.pendingBalance) === 0) &&
-        (profile?.totalRevenuePaise === BigInt(0) || Number(profile?.totalRevenuePaise) === 0),
+      passed: Number(profile?.totalRevenuePaise) > 0,
       details: `pendingBalance: ${profile?.pendingBalance}, totalRevenue: ${profile?.totalRevenuePaise}`,
     };
   });

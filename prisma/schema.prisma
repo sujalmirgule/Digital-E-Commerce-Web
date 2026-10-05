@@ -379,6 +379,7 @@ model Order {
   downloads           Download[]
   entitlements        Entitlement[] @relation("OrderEntitlements")
   sellerEarnings      SellerEarning[]
+  platformLedgers     PlatformLedger[]
   
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -407,6 +408,8 @@ model OrderItem {
   licenseType          LicenseType   @default(COMMERCIAL)
   
   entitlements         Entitlement[] @relation("OrderItemEntitlements")
+  sellerEarnings       SellerEarning[]
+  platformLedgers      PlatformLedger[]
   
   createdAt            DateTime      @default(now())
 
@@ -559,7 +562,10 @@ model SellerEarning {
   seller              SellerProfile @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   
   orderId             String
-  order               Order         @relation(fields: [orderId], references: [id])
+  order               Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  orderItemId         String?
+  orderItem           OrderItem?    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
   
   grossAmountPaise    Int
   platformFeePaise    Int
@@ -571,9 +577,33 @@ model SellerEarning {
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
 
+  @@unique([orderId, orderItemId])
   @@index([sellerId])
   @@index([orderId])
+  @@index([orderItemId])
   @@index([status])
+}
+
+model PlatformLedger {
+  id               String        @id @default(cuid())
+  orderId          String
+  order            Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  orderItemId      String?
+  orderItem        OrderItem?    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  
+  feePaise         Int           // Platform commission in paise
+  grossAmountPaise Int           // Gross order/item sale in paise
+  netSellerPaise   Int           // Net earned by seller in paise
+  
+  status           String        @default("RECORDED")
+  
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([orderId, orderItemId])
+  @@index([orderId])
+  @@index([orderItemId])
 }
 
 model Payout {

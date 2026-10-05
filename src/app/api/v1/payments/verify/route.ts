@@ -5,6 +5,7 @@ import { apiSuccess, apiError } from "@/lib/api-response";
 import { paymentVerifySchema } from "@/lib/validations/payment";
 import { verifyPaymentSignature } from "@/lib/payment/razorpay";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { settleSellerEarnings } from "@/lib/services/seller-earnings";
 
 export const dynamic = "force-dynamic";
 
@@ -234,7 +235,13 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    // 7. Check if digital downloads are provisioned (Feature 12 boundary check)
+    // 7. Trigger Feature 14 seller earnings settlement (async, non-blocking, idempotent)
+    // Settlement failure must NEVER roll back the PAID state.
+    settleSellerEarnings(updatedOrder.id).catch((err) => {
+      console.error("[SELLER_EARNINGS_SETTLEMENT_ERROR]", err);
+    });
+
+    // 8. Check if digital downloads are provisioned (Feature 12 boundary check)
     const downloadCount = await prisma.download.count({
       where: { orderId: updatedOrder.id, isActive: true },
     });
@@ -244,7 +251,7 @@ export async function POST(req: NextRequest) {
       ? "Payment verified successfully. Your files are ready."
       : "Payment verified successfully.";
 
-    // 8. Return safe checkout verification response (zero sensitive data leakage)
+    // 9. Return safe checkout verification response (zero sensitive data leakage)
     return apiSuccess(
       {
         orderId: updatedOrder.id,
