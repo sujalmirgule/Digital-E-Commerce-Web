@@ -362,6 +362,7 @@ model Order {
   // Customer info snapshot at checkout
   buyerNameSnapshot   String
   buyerEmailSnapshot  String
+  idempotencyKey      String?       @unique
   
   // Relations
   items               OrderItem[]
