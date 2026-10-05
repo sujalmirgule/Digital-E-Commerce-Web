@@ -10,6 +10,8 @@
     "test:signup": "tsx scripts/test-signup.ts",
     "test:login": "tsx scripts/test-login.ts",
     "test:profile": "tsx scripts/test-profile.ts",
+    "test:seller-onboard": "tsx scripts/test-seller-onboarding.ts",
+    "test:admin-seller": "tsx scripts/test-admin-seller.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
   },

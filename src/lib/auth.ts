@@ -82,3 +82,15 @@ export async function getAuthenticatedUser(req: NextRequest): Promise<Authentica
     return null;
   }
 }
+
+/**
+ * Verifies that the request is authenticated AND the user possesses the ADMIN role in PostgreSQL.
+ * Returns AuthenticatedUser if admin, or null otherwise.
+ */
+export async function getAuthenticatedAdmin(req: NextRequest): Promise<AuthenticatedUser | null> {
+  const user = await getAuthenticatedUser(req);
+  if (!user || user.role !== "ADMIN") {
+    return null;
+  }
+  return user;
+}
