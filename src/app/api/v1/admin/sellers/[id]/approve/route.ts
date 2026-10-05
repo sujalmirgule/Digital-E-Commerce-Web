@@ -91,6 +91,21 @@ async function handleApprove(
       },
     });
 
+    // Record audit log
+    await prisma.auditLog
+      .create({
+        data: {
+          adminId: authUser.id,
+          action: "APPROVE_SELLER",
+          targetEntity: "SellerProfile",
+          targetId: seller.id,
+          metadata: {
+            storeName: seller.storeName,
+          },
+        },
+      })
+      .catch((err) => console.error("[AUDIT_LOG_ERROR]", err));
+
     return apiSuccess(
       { seller: updatedSeller },
       `Seller '${updatedSeller.storeName}' has been successfully approved`,

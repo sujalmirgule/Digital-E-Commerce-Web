@@ -104,6 +104,22 @@ async function handleReject(
       },
     });
 
+    // Record audit log
+    await prisma.auditLog
+      .create({
+        data: {
+          adminId: authUser.id,
+          action: "REJECT_SELLER",
+          targetEntity: "SellerProfile",
+          targetId: seller.id,
+          metadata: {
+            storeName: seller.storeName,
+            rejectionReason: validatedData.rejectionReason,
+          },
+        },
+      })
+      .catch((err) => console.error("[AUDIT_LOG_ERROR]", err));
+
     return apiSuccess(
       { seller: updatedSeller },
       `Seller application for '${updatedSeller.storeName}' has been rejected`,

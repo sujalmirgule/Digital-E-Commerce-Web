@@ -70,9 +70,16 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const actionLabel =
+      parseResult.data.action === "hide"
+        ? "HIDDEN"
+        : parseResult.data.action === "restore"
+        ? "RESTORED"
+        : "DELETED";
+
     return apiSuccess(
       {
-        action: result.action,
+        action: actionLabel,
         reviewId: result.reviewId,
         aggregates: result.aggregates,
       },

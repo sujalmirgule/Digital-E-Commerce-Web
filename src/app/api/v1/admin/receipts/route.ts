@@ -107,10 +107,12 @@ export async function GET(req: NextRequest) {
     const formattedReceipts = receipts.map((r) => ({
       id: r.id,
       invoiceNumber: r.invoiceNumber,
+      receiptNumber: r.invoiceNumber,
       orderId: r.orderId,
       buyerName: r.buyerName,
       buyerEmail: r.buyerEmail,
       amountPaidPaise: r.amountPaidPaise,
+      totalAmountPaise: r.amountPaidPaise,
       amountFormatted: formatPaiseToINR(r.amountPaidPaise),
       currency: r.currency,
       paymentMethod: r.paymentMethod,
