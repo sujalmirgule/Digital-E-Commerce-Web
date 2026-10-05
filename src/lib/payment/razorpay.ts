@@ -25,6 +25,58 @@ export function getRazorpayKeyId(): string {
 }
 
 /**
+ * Returns the Razorpay Key Secret.
+ * Falls back to a deterministic development/test secret if not configured in environment.
+ */
+export function getRazorpayKeySecret(): string {
+  return process.env.RAZORPAY_KEY_SECRET || "fallback_dev_razorpay_secret_key_mock";
+}
+
+/**
+ * Computes the HMAC-SHA256 signature for Razorpay payment callback verification.
+ * Format: HMAC-SHA256("${razorpayOrderId}|${razorpayPaymentId}", secret)
+ */
+export function generatePaymentSignature(
+  razorpayOrderId: string,
+  razorpayPaymentId: string,
+  secret: string = getRazorpayKeySecret()
+): string {
+  const payload = `${razorpayOrderId}|${razorpayPaymentId}`;
+  return crypto.createHmac("sha256", secret).update(payload).digest("hex");
+}
+
+/**
+ * Cryptographically verifies Razorpay payment signature using timing-safe buffer comparison.
+ * Protects against timing attack vulnerabilities.
+ */
+export function verifyPaymentSignature(
+  razorpayOrderId: string,
+  razorpayPaymentId: string,
+  razorpaySignature: string,
+  secret: string = getRazorpayKeySecret()
+): boolean {
+  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    return false;
+  }
+
+  const expectedSignature = generatePaymentSignature(razorpayOrderId, razorpayPaymentId, secret);
+
+  const expectedBuffer = Buffer.from(expectedSignature, "utf-8");
+  const actualBuffer = Buffer.from(razorpaySignature, "utf-8");
+
+  // Constant-time length check
+  if (expectedBuffer.length !== actualBuffer.length) {
+    return false;
+  }
+
+  try {
+    return crypto.timingSafeEqual(expectedBuffer, actualBuffer);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Formats a canonical marketplace Order ID conforming to:
  * ORD-YYYYMMDD-XXXX (e.g. ORD-20261005-9821)
  */

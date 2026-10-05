@@ -16,6 +16,7 @@
     "test:moderation": "tsx scripts/test-product-moderation.ts",
     "test:catalog": "tsx scripts/test-product-catalog.ts",
     "test:checkout": "tsx scripts/test-checkout.ts",
+    "test:verify": "tsx scripts/test-payment-verification.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
   },

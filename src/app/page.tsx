@@ -5,7 +5,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-8 text-center">
       <div className="max-w-xl p-8 rounded-2xl border border-slate-800 bg-slate-900/50 backdrop-blur shadow-2xl">
         <div className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-4">
-          Feature 01 - Feature 10 Active (Order Checkout Initialization)
+          Feature 01 - Feature 11 Active (Razorpay Payment Verification)
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">
           Digital Marketplace Engine
@@ -58,9 +58,15 @@ export default function Home() {
           </Link>
           <Link
             href="/test/checkout"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-600/25"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white transition-colors border border-slate-700"
           >
             Test Checkout →
+          </Link>
+          <Link
+            href="/test/verify"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-600/25"
+          >
+            Test Payment Verify →
           </Link>
         </div>
       </div>
