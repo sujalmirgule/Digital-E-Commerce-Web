@@ -162,12 +162,17 @@ export async function POST(req: NextRequest) {
     if (order.status === OrderStatus.PAID) {
       // If already paid with the exact same payment reference -> safe idempotent 200
       if (order.razorpayPaymentId === razorpayPaymentId) {
+        const downloadCount = await prisma.download.count({
+          where: { orderId: order.id, isActive: true },
+        });
+        const downloadReady = downloadCount > 0;
+
         return apiSuccess(
           {
             orderId: order.id,
             status: "PAID",
             paidAt: order.paidAt,
-            downloadReady: true,
+            downloadReady,
             alreadyVerified: true,
             message: "Payment already verified for this order.",
           },
@@ -229,14 +234,24 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    // 7. Return safe checkout verification response (zero sensitive data leakage)
+    // 7. Check if digital downloads are provisioned (Feature 12 boundary check)
+    const downloadCount = await prisma.download.count({
+      where: { orderId: updatedOrder.id, isActive: true },
+    });
+    const downloadReady = downloadCount > 0;
+
+    const message = downloadReady
+      ? "Payment verified successfully. Your files are ready."
+      : "Payment verified successfully.";
+
+    // 8. Return safe checkout verification response (zero sensitive data leakage)
     return apiSuccess(
       {
         orderId: updatedOrder.id,
         status: updatedOrder.status,
         paidAt: updatedOrder.paidAt,
-        downloadReady: true,
-        message: "Payment verified successfully. Your files are ready.",
+        downloadReady,
+        message,
         payment: {
           id: paymentRecord.id,
           amountPaise: paymentRecord.amountPaise,
@@ -245,7 +260,7 @@ export async function POST(req: NextRequest) {
           verifiedAt: paymentRecord.verifiedAt,
         },
       },
-      "Payment verified successfully. Your files are ready.",
+      message,
       200
     );
   } catch (error) {

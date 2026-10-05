@@ -81,6 +81,7 @@ function makeReq(
 async function parseJson(res: Response): Promise<{
   status: number;
   success?: boolean;
+  message?: string;
   data?: any;
   error?: any;
 }> {
@@ -1052,9 +1053,10 @@ async function main() {
         data.success === true &&
         data.data?.orderId === validOrderId &&
         data.data?.status === "PAID" &&
-        data.data?.downloadReady === true &&
+        data.data?.downloadReady === false &&
+        data.message === "Payment verified successfully." &&
         !!data.data?.paidAt,
-      details: `Status: ${data.status}, OrderId: ${data.data?.orderId}, OrderStatus: ${data.data?.status}`,
+      details: `Status: ${data.status}, OrderId: ${data.data?.orderId}, OrderStatus: ${data.data?.status}, downloadReady: ${data.data?.downloadReady}`,
     };
   });
 
@@ -1096,8 +1098,9 @@ async function main() {
         data.status === 200 &&
         data.success === true &&
         data.data?.status === "PAID" &&
+        data.data?.downloadReady === false &&
         data.data?.alreadyVerified === true,
-      details: `Status: ${data.status}, alreadyVerified: ${data.data?.alreadyVerified}`,
+      details: `Status: ${data.status}, alreadyVerified: ${data.data?.alreadyVerified}, downloadReady: ${data.data?.downloadReady}`,
     };
   });
 
