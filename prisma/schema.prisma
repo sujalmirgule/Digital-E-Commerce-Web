@@ -699,6 +699,7 @@ model Review {
   sellerRepliedAt  DateTime?
   
   isReported       Boolean   @default(false)
+  isVisible        Boolean   @default(true)
   
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
