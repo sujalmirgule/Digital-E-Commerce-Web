@@ -948,46 +948,60 @@ async function main() {
   });
 
   await runTest("38. Razorpay gateway failure returns 502 without creating broken DB order", async () => {
-    process.env.RAZORPAY_SIMULATE_FAILURE = "true";
-    const countBefore = await prisma.order.count();
+    let res: any;
+    let data: any;
+    let countBefore = 0;
+    let countAfter = 0;
+    try {
+      process.env.RAZORPAY_SIMULATE_FAILURE = "true";
+      countBefore = await prisma.order.count();
 
-    const res = await checkoutHandler(
-      makeReq(
-        "http://localhost/api/v1/orders/checkout",
-        "POST",
-        { productId: prodPublished.id },
-        buyerToken
-      )
-    );
-    const data = await parseJson(res);
-    const countAfter = await prisma.order.count();
-    delete process.env.RAZORPAY_SIMULATE_FAILURE;
+      res = await checkoutHandler(
+        makeReq(
+          "http://localhost/api/v1/orders/checkout",
+          "POST",
+          { productId: prodPublished.id },
+          buyerToken
+        )
+      );
+      data = await parseJson(res);
+      countAfter = await prisma.order.count();
+    } finally {
+      delete process.env.RAZORPAY_SIMULATE_FAILURE;
+    }
 
     return {
-      passed: data.status === 502 && data.error?.code === "PAYMENT_GATEWAY_ERROR" && countBefore === countAfter,
-      details: `Status: ${data.status}, Code: ${data.error?.code}, Orders before: ${countBefore}, after: ${countAfter}`,
+      passed: data?.status === 502 && data?.error?.code === "PAYMENT_GATEWAY_ERROR" && countBefore === countAfter,
+      details: `Status: ${data?.status}, Code: ${data?.error?.code}, Orders before: ${countBefore}, after: ${countAfter}`,
     };
   });
 
   await runTest("39. Razorpay timeout returns 502 without creating broken DB order", async () => {
-    process.env.RAZORPAY_SIMULATE_TIMEOUT = "true";
-    const countBefore = await prisma.order.count();
+    let res: any;
+    let data: any;
+    let countBefore = 0;
+    let countAfter = 0;
+    try {
+      process.env.RAZORPAY_SIMULATE_TIMEOUT = "true";
+      countBefore = await prisma.order.count();
 
-    const res = await checkoutHandler(
-      makeReq(
-        "http://localhost/api/v1/orders/checkout",
-        "POST",
-        { productId: prodPublished.id },
-        buyerToken
-      )
-    );
-    const data = await parseJson(res);
-    const countAfter = await prisma.order.count();
-    delete process.env.RAZORPAY_SIMULATE_TIMEOUT;
+      res = await checkoutHandler(
+        makeReq(
+          "http://localhost/api/v1/orders/checkout",
+          "POST",
+          { productId: prodPublished.id },
+          buyerToken
+        )
+      );
+      data = await parseJson(res);
+      countAfter = await prisma.order.count();
+    } finally {
+      delete process.env.RAZORPAY_SIMULATE_TIMEOUT;
+    }
 
     return {
-      passed: data.status === 502 && data.error?.code === "PAYMENT_GATEWAY_ERROR" && countBefore === countAfter,
-      details: `Status: ${data.status}, Code: ${data.error?.code}`,
+      passed: data?.status === 502 && data?.error?.code === "PAYMENT_GATEWAY_ERROR" && countBefore === countAfter,
+      details: `Status: ${data?.status}, Code: ${data?.error?.code}`,
     };
   });
 

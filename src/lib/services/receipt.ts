@@ -596,24 +596,36 @@ export async function generateReceiptForOrder(orderId: string) {
   await storage.putObject(pdfStorageKey, pdfBuffer, "application/pdf");
 
   // 9. Persist Receipt record (Concurrency/Unique race safe)
-  const receipt = await prisma.receipt.upsert({
-    where: { orderId: order.id },
-    create: {
-      id: receiptId,
-      orderId: order.id,
-      invoiceNumber,
-      pdfStorageKey,
-      buyerName: order.buyerNameSnapshot,
-      buyerEmail: order.buyerEmailSnapshot,
-      amountPaidPaise: order.totalAmountPaise,
-      currency: order.currency,
-      paymentMethod: capturedPayment.method,
-      paymentId: capturedPayment.razorpayPaymentId,
-      templateVersion: template.version,
-      templateSnapshot,
-    },
-    update: {},
-  });
+  let receipt;
+  try {
+    receipt = await prisma.receipt.upsert({
+      where: { orderId: order.id },
+      create: {
+        id: receiptId,
+        orderId: order.id,
+        invoiceNumber,
+        pdfStorageKey,
+        buyerName: order.buyerNameSnapshot,
+        buyerEmail: order.buyerEmailSnapshot,
+        amountPaidPaise: order.totalAmountPaise,
+        currency: order.currency,
+        paymentMethod: capturedPayment.method,
+        paymentId: capturedPayment.razorpayPaymentId,
+        templateVersion: template.version,
+        templateSnapshot,
+      },
+      update: {},
+    });
+  } catch (err: any) {
+    const existing = await prisma.receipt.findUnique({
+      where: { orderId: order.id },
+    });
+    if (existing) {
+      receipt = existing;
+    } else {
+      throw err;
+    }
+  }
 
   // 10. Notify buyer that receipt is ready (async, non-blocking, idempotent)
   createNotification({
