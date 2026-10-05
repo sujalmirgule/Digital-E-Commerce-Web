@@ -14,6 +14,7 @@
     "test:admin-seller": "tsx scripts/test-admin-seller.ts",
     "test:upload": "tsx scripts/test-product-upload.ts",
     "test:moderation": "tsx scripts/test-product-moderation.ts",
+    "test:catalog": "tsx scripts/test-product-catalog.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
   },

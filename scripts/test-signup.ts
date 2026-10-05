@@ -54,13 +54,17 @@ async function main() {
   const testEmailWhitespace = `  whitespace.test.${timestamp}@example.com  `;
 
   // Clean up any test users with this prefix before starting
-  await prisma.user.deleteMany({
-    where: {
-      email: {
-        contains: "test.",
+  try {
+    await prisma.user.deleteMany({
+      where: {
+        email: {
+          contains: "@example.com",
+        },
       },
-    },
-  });
+    });
+  } catch {
+    // Ignore foreign key constraints from unrelated suites
+  }
 
   // 1. Valid signup
   let createdUserId = "";
@@ -310,13 +314,17 @@ async function main() {
   });
 
   // Clean up test users
-  await prisma.user.deleteMany({
-    where: {
-      email: {
-        contains: "test.",
+  try {
+    await prisma.user.deleteMany({
+      where: {
+        email: {
+          contains: "@example.com",
+        },
       },
-    },
-  });
+    });
+  } catch {
+    // Ignore foreign key constraints from unrelated suites
+  }
 
   console.log("\n=================================================================");
   const allPassed = results.every((r) => r.passed);

@@ -160,3 +160,105 @@ export const adminRejectProductSchema = z
   });
 
 export type AdminRejectProductInput = z.infer<typeof adminRejectProductSchema>;
+
+/**
+ * Valid sort options for public product catalog discovery.
+ */
+export const catalogSortOptions = [
+  "newest",
+  "best_selling",
+  "price_asc",
+  "price_desc",
+  "rating",
+] as const;
+
+export type CatalogSortOption = (typeof catalogSortOptions)[number];
+
+/**
+ * Validation schema for public catalog query parameters.
+ * Enforces strict mode to reject arbitrary/injected query parameters.
+ */
+export const catalogQuerySchema = z
+  .object({
+    page: z
+      .preprocess((val) => {
+        if (val === undefined || val === null || val === "") return 1;
+        const num = Number(val);
+        return isNaN(num) ? val : num;
+      }, z.number({ invalid_type_error: "Page must be a valid number" }).int("Page must be an integer").min(1, "Page must be at least 1"))
+      .default(1),
+    limit: z
+      .preprocess((val) => {
+        if (val === undefined || val === null || val === "") return 20;
+        const num = Number(val);
+        return isNaN(num) ? val : num;
+      }, z.number({ invalid_type_error: "Limit must be a valid number" }).int("Limit must be an integer").min(1, "Limit must be at least 1").max(100, "Limit cannot exceed 100"))
+      .default(20),
+    category: z
+      .string({ invalid_type_error: "Category must be a string" })
+      .trim()
+      .min(1, "Category slug cannot be empty")
+      .max(100, "Category slug cannot exceed 100 characters")
+      .regex(/^[a-z0-9-]+$/, "Category slug must only contain lowercase alphanumeric characters and hyphens")
+      .optional(),
+    query: z
+      .string({ invalid_type_error: "Search query must be a string" })
+      .trim()
+      .min(1, "Search query cannot be empty")
+      .max(100, "Search query cannot exceed 100 characters")
+      .optional(),
+    minPrice: z
+      .preprocess((val) => {
+        if (val === undefined || val === null || val === "") return undefined;
+        const num = Number(val);
+        return isNaN(num) ? val : num;
+      }, z.number({ invalid_type_error: "minPrice must be a valid number" }).int("minPrice must be an integer in paise").min(0, "minPrice must be greater than or equal to 0").optional()),
+    maxPrice: z
+      .preprocess((val) => {
+        if (val === undefined || val === null || val === "") return undefined;
+        const num = Number(val);
+        return isNaN(num) ? val : num;
+      }, z.number({ invalid_type_error: "maxPrice must be a valid number" }).int("maxPrice must be an integer in paise").min(0, "maxPrice must be greater than or equal to 0").optional()),
+    productType: z
+      .enum(["DIGITAL_DOWNLOAD", "SOFTWARE", "BUNDLE"], {
+        invalid_type_error: "productType must be one of: DIGITAL_DOWNLOAD, SOFTWARE, BUNDLE",
+      })
+      .optional(),
+    sort: z
+      .enum(catalogSortOptions, {
+        invalid_type_error: `Sort must be one of: ${catalogSortOptions.join(", ")}`,
+      })
+      .default("newest"),
+  })
+  .strict({
+    message: "Unexpected query parameters provided",
+  })
+  .refine(
+    (data) => {
+      if (data.minPrice !== undefined && data.maxPrice !== undefined) {
+        return data.minPrice <= data.maxPrice;
+      }
+      return true;
+    },
+    {
+      message: "minPrice cannot be greater than maxPrice",
+      path: ["minPrice"],
+    }
+  );
+
+export type CatalogQueryInput = z.infer<typeof catalogQuerySchema>;
+
+/**
+ * Validation schema for product ID or slug in public detail endpoint.
+ * Accepts alphanumeric characters, hyphens, and underscores.
+ */
+export const productIdentifierSchema = z
+  .string({
+    required_error: "Product identifier is required",
+    invalid_type_error: "Product identifier must be a string",
+  })
+  .trim()
+  .min(1, "Product identifier cannot be empty")
+  .max(150, "Product identifier cannot exceed 150 characters")
+  .regex(/^[a-zA-Z0-9_-]+$/, "Product identifier contains invalid characters");
+
