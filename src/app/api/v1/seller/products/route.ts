@@ -4,6 +4,7 @@ import { getAuthenticatedSeller } from "@/lib/auth";
 import { createProductSchema } from "@/lib/validations/product";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { ZodError } from "zod";
+import { ProductStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -156,3 +157,56 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+/**
+ * GET /api/v1/seller/products
+ *
+ * Retrieves all products owned by the authenticated APPROVED seller.
+ * Supports status filtering (DRAFT, PENDING_REVIEW, PUBLISHED, REJECTED, ARCHIVED),
+ * text search on title/slug, and pagination.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const authSeller = await getAuthenticatedSeller(req);
+    if (!authSeller) {
+      const hasAuth = req.headers.get("authorization");
+      if (!hasAuth) {
+        return apiError("UNAUTHORIZED", "Authentication required to view seller products", 401);
+      }
+      return apiError(
+        "FORBIDDEN",
+        "Only approved sellers can view their product inventory",
+        403
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const statusParam = searchParams.get("status");
+    const search = searchParams.get("search") || undefined;
+
+    let status: ProductStatus | undefined;
+    if (statusParam && Object.values(ProductStatus).includes(statusParam as ProductStatus)) {
+      status = statusParam as ProductStatus;
+    }
+
+    const { getSellerProducts } = await import("@/lib/services/seller-dashboard");
+    const result = await getSellerProducts(authSeller.sellerProfileId, {
+      page: isNaN(page) ? 1 : page,
+      limit: isNaN(limit) ? 10 : limit,
+      status,
+      search,
+    });
+
+    return apiSuccess(result, "Seller products retrieved successfully", 200);
+  } catch (error) {
+    console.error("[SELLER_PRODUCTS_GET_ERROR]", error);
+    return apiError(
+      "INTERNAL_SERVER_ERROR",
+      "Failed to retrieve seller products",
+      500
+    );
+  }
+}
+

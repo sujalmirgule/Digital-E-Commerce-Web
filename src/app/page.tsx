@@ -86,6 +86,12 @@ export default function Home() {
           >
             Buyer Dashboard (Feature 17) →
           </Link>
+          <Link
+            href="/seller"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white transition-colors shadow-lg shadow-purple-600/25"
+          >
+            Seller Workspace (Feature 18) →
+          </Link>
         </div>
       </div>
     </main>
