@@ -21,6 +21,7 @@
     "test:download": "tsx scripts/test-secure-download.ts",
     "test:refunds": "tsx scripts/test-refunds-lifecycle.ts",
     "test:search": "tsx scripts/test-advanced-search.ts",
+    "test:hardening": "tsx scripts/test-production-hardening.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
   },

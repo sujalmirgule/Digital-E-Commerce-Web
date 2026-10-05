@@ -1,9 +1,11 @@
 import crypto from "crypto";
 
 const SIGNING_SECRET =
+  process.env.DOWNLOAD_SIGNING_SECRET ||
   process.env.STORAGE_SIGNING_SECRET ||
   process.env.JWT_SECRET ||
   "secure-storage-signing-secret-default";
+
 
 /**
  * Generates an HMAC-SHA256 signature for a private storage object download URL.

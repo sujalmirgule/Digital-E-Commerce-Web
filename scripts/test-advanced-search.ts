@@ -216,7 +216,7 @@ async function main() {
       salesCount: 85,
       tags: ["react", "nextjs", "dashboard", "analytics"],
       status: "PUBLISHED",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+      createdAt: new Date(Date.now() - 1000 * 15), // 15 secs ago
     },
   });
 
@@ -238,7 +238,7 @@ async function main() {
       salesCount: 210,
       tags: ["tailwind", "css", "free", "ui"],
       status: "PUBLISHED",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+      createdAt: new Date(Date.now() - 1000 * 25), // 25 secs ago
     },
   });
 
@@ -260,7 +260,7 @@ async function main() {
       salesCount: 150,
       tags: ["figma", "tokens", "wireframe", "design-system"],
       status: "PUBLISHED",
-      createdAt: new Date(Date.now() - 1000 * 60 * 10), // 10 mins ago (newest)
+      createdAt: new Date(Date.now() - 1000 * 5), // 5 secs ago (newest)
     },
   });
 
@@ -282,9 +282,10 @@ async function main() {
       salesCount: 40,
       tags: ["icons", "svg", "vector"],
       status: "PUBLISHED",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago (oldest)
+      createdAt: new Date(Date.now() - 1000 * 35), // 35 secs ago (oldest of the 4)
     },
   });
+
 
   // Prod 5: DRAFT Product (Must be hidden)
   const prodDraft = await prisma.product.create({

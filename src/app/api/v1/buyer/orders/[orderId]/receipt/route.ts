@@ -140,8 +140,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         });
       } catch (streamErr) {
         console.error("[RECEIPT_STREAM_ERROR]", streamErr);
+        if (downloadUrl) {
+          return NextResponse.redirect(downloadUrl, 302);
+        }
       }
     }
+
 
     // 7. Return safe JSON response
     return apiSuccess(

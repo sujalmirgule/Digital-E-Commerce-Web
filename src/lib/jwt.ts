@@ -1,6 +1,23 @@
 import jwt, { SignOptions } from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-for-dev-only-digital-marketplace";
+const DEFAULT_DEV_SECRET = "fallback-secret-for-dev-only-digital-marketplace";
+const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_DEV_SECRET;
+
+/**
+ * Validates whether a JWT secret meets production entropy requirements.
+ * Must be at least 32 characters long and not the development default.
+ */
+export function isStrongJwtSecret(secret?: string): boolean {
+  const s = secret || JWT_SECRET;
+  if (!s || s === DEFAULT_DEV_SECRET) return false;
+  return s.length >= 32;
+}
+
+if (process.env.NODE_ENV === "production" && !isStrongJwtSecret()) {
+  console.warn(
+    "[SECURITY WARNING] JWT_SECRET in production is weak or using default placeholder! Please set a strong 32+ char secret in .env."
+  );
+}
 
 export interface JwtPayload {
   sub: string;
@@ -8,6 +25,7 @@ export interface JwtPayload {
   role: string;
   [key: string]: unknown;
 }
+
 
 /**
  * Signs a JWT token with standard claims and default expiration of 7 days.

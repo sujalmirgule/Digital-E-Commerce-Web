@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sanitizeErrorMessage } from "@/lib/logger";
 
 export interface ApiResponseSuccess<T> {
   success: true;
@@ -32,13 +33,15 @@ export function apiSuccess<T>(data: T, message?: string, status = 200, meta?: Re
 }
 
 export function apiError(code: string, message: string, status = 400, details?: ApiErrorDetail[]) {
+  const sanitizedMessage = sanitizeErrorMessage(message);
   const payload: ApiResponseError = {
     success: false,
     error: {
       code,
-      message,
+      message: sanitizedMessage,
       ...(details && details.length > 0 ? { details } : {}),
     },
   };
   return NextResponse.json(payload, { status });
 }
+

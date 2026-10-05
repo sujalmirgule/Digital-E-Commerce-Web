@@ -216,33 +216,30 @@ export class LocalStorageProvider implements StorageProvider {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Future R2 provider slot
-// ---------------------------------------------------------------------------
-// export class R2StorageProvider implements StorageProvider {
-//   async authorizeUpload(params) { /* generate presigned R2 PUT URL */ }
-//   async objectExists(objectKey) { /* HeadObject R2 */ }
-//   async getObjectMetadata(objectKey) { /* HeadObject R2 */ }
-//   async deleteObject(objectKey) { /* DeleteObject R2 */ }
-// }
+import { S3StorageProvider } from "./s3-storage-provider";
 
 // ---------------------------------------------------------------------------
 // Provider factory — change STORAGE_PROVIDER env var to switch implementations.
 // ---------------------------------------------------------------------------
 let _providerInstance: StorageProvider | null = null;
 
+export function setStorageProvider(provider: StorageProvider | null): void {
+  _providerInstance = provider;
+}
+
 export function getStorageProvider(): StorageProvider {
   if (_providerInstance) return _providerInstance;
 
-  const providerName = process.env.STORAGE_PROVIDER || "local";
+  const providerName = (process.env.STORAGE_PROVIDER || "local").toLowerCase();
 
   switch (providerName) {
     case "local":
       _providerInstance = new LocalStorageProvider();
       break;
-    // case "r2":
-    //   _providerInstance = new R2StorageProvider();
-    //   break;
+    case "r2":
+    case "s3":
+      _providerInstance = new S3StorageProvider();
+      break;
     default:
       console.warn(
         `[STORAGE] Unknown provider '${providerName}', falling back to LocalStorageProvider`
@@ -252,3 +249,4 @@ export function getStorageProvider(): StorageProvider {
 
   return _providerInstance;
 }
+
