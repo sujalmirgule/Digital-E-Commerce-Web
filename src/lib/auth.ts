@@ -94,3 +94,34 @@ export async function getAuthenticatedAdmin(req: NextRequest): Promise<Authentic
   }
   return user;
 }
+
+export interface AuthenticatedSeller {
+  user: AuthenticatedUser;
+  /** The SellerProfile.id (not the User.id) — use for product ownership checks. */
+  sellerProfileId: string;
+}
+
+/**
+ * Verifies that the request is authenticated, the user has an APPROVED SellerProfile,
+ * and the account is active. Returns both the user and the SellerProfile id.
+ * Returns null on any failure — caller must return 401/403 as appropriate.
+ */
+export async function getAuthenticatedSeller(
+  req: NextRequest
+): Promise<AuthenticatedSeller | null> {
+  const user = await getAuthenticatedUser(req);
+  if (!user || !user.isActive) return null;
+  if (!user.hasSellerProfile || user.sellerStatus !== "APPROVED") return null;
+
+  // Re-fetch sellerProfile.id directly — we only stored status in AuthenticatedUser.
+  try {
+    const profile = await prisma.sellerProfile.findUnique({
+      where: { userId: user.id },
+      select: { id: true, status: true },
+    });
+    if (!profile || profile.status !== "APPROVED") return null;
+    return { user, sellerProfileId: profile.id };
+  } catch {
+    return null;
+  }
+}
