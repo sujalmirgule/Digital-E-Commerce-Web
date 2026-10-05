@@ -297,6 +297,13 @@ model Product {
   @@index([categoryId])
   @@index([status])
   @@index([isFeatured])
+  @@index([status, categoryId])
+  @@index([status, createdAt])
+  @@index([status, pricePaise])
+  @@index([status, ratingAvg])
+  @@index([status, salesCount])
+  @@index([status, licenseType])
+  @@index([status, sellerId])
 }
 
 enum MediaType {

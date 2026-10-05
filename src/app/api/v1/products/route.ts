@@ -2,19 +2,20 @@ import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { apiSuccess, apiError } from "@/lib/api-response";
-import { catalogQuerySchema } from "@/lib/validations/product";
+import { catalogQuerySchema, normalizeSearchQuery } from "@/lib/validations/product";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/v1/products
  *
- * Public marketplace product catalog with pagination, category filtering,
- * price filtering, search, and allowlisted sorting.
+ * Public marketplace product catalog with advanced search, filtering,
+ * price ranges, seller filtering, ratings, and allowlisted sorting.
  *
  * Security & Isolation:
  *   - Strictly enforces status = 'PUBLISHED'.
- *   - Never returns DRAFT, PENDING_REVIEW, REJECTED, or ARCHIVED products.
+ *   - Never returns DRAFT, PENDING_REVIEW, REJECTED, ARCHIVED, or SUSPENDED products.
+ *   - Strictly restricts to sellers with status = 'APPROVED'.
  *   - Never queries or exposes private ProductFile or storageKey.
  *   - Never exposes seller KYC, bank, financial, or authentication details.
  *   - Enforces strict query validation to reject arbitrary/malicious parameters.
@@ -45,75 +46,133 @@ export async function GET(req: NextRequest) {
     const {
       page,
       limit,
-      category: categorySlug,
-      query: searchQuery,
+      category,
+      categorySlug,
+      query,
+      q,
       minPrice,
+      priceMin,
       maxPrice,
+      priceMax,
+      rating,
+      minRating,
+      seller,
+      sellerSlug,
+      licenseType,
       productType,
       sort,
     } = parseResult.data;
 
-    // 3. Resolve category if provided
+    // Normalize parameters and aliases
+    const rawSearchQuery = query || q || "";
+    const searchQuery = normalizeSearchQuery(rawSearchQuery);
+    const effectiveCategory = category || categorySlug;
+    const effectiveMinPrice = priceMin !== undefined ? priceMin : minPrice;
+    const effectiveMaxPrice = priceMax !== undefined ? priceMax : maxPrice;
+    const effectiveRating = minRating !== undefined ? minRating : rating;
+    const effectiveSeller = seller || sellerSlug;
+
+    // 3. Resolve category if provided (supports slug or CUID)
     let categoryId: string | undefined;
-    if (categorySlug) {
-      const cat = await prisma.category.findUnique({
-        where: { slug: categorySlug, isActive: true },
+    if (effectiveCategory) {
+      const cat = await prisma.category.findFirst({
+        where: {
+          OR: [{ slug: effectiveCategory }, { id: effectiveCategory }],
+          isActive: true,
+        },
         select: { id: true, slug: true, name: true },
       });
 
       if (!cat) {
         return apiError(
           "VALIDATION_FAILED",
-          `Category '${categorySlug}' does not exist or is inactive`,
+          `Category '${effectiveCategory}' does not exist or is inactive`,
           400,
-          [{ field: "category", message: `Category '${categorySlug}' not found` }]
+          [{ field: "category", message: `Category '${effectiveCategory}' not found` }]
         );
       }
       categoryId = cat.id;
     }
 
-    // 4. Construct safe PostgreSQL WHERE clause (hardcoded status = PUBLISHED)
+    // 4. Construct safe PostgreSQL WHERE clause
+    let sellerWhereClause: Prisma.ProductWhereInput["seller"] = {
+      status: "APPROVED",
+    };
+    if (effectiveSeller) {
+      sellerWhereClause = {
+        OR: [{ storeSlug: effectiveSeller }, { id: effectiveSeller }],
+        status: "APPROVED",
+      };
+    }
+
     const where: Prisma.ProductWhereInput = {
       status: "PUBLISHED",
+      seller: sellerWhereClause,
       ...(categoryId ? { categoryId } : {}),
       ...(productType ? { productType } : {}),
-      ...(minPrice !== undefined || maxPrice !== undefined
+      ...(licenseType ? { licenseType } : {}),
+      ...(effectiveRating !== undefined ? { ratingAvg: { gte: effectiveRating } } : {}),
+      ...(effectiveMinPrice !== undefined || effectiveMaxPrice !== undefined
         ? {
             pricePaise: {
-              ...(minPrice !== undefined ? { gte: minPrice } : {}),
-              ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+              ...(effectiveMinPrice !== undefined ? { gte: effectiveMinPrice } : {}),
+              ...(effectiveMaxPrice !== undefined ? { lte: effectiveMaxPrice } : {}),
             },
-          }
-        : {}),
-      ...(searchQuery
-        ? {
-            OR: [
-              { title: { contains: searchQuery, mode: "insensitive" } },
-              { shortDescription: { contains: searchQuery, mode: "insensitive" } },
-              { description: { contains: searchQuery, mode: "insensitive" } },
-              { tags: { has: searchQuery } },
-            ],
           }
         : {}),
     };
 
+    if (searchQuery) {
+      const rawTokens = searchQuery
+        .split(" ")
+        .map((t) => t.trim())
+        .filter((t) => t.length >= 2);
+      const tokens = Array.from(new Set(rawTokens)).slice(0, 5);
+
+      const orClauses: Prisma.ProductWhereInput[] = [
+        { title: { contains: searchQuery, mode: "insensitive" } },
+        { shortDescription: { contains: searchQuery, mode: "insensitive" } },
+        { description: { contains: searchQuery, mode: "insensitive" } },
+        { tags: { has: searchQuery } },
+      ];
+
+      // If user typed multiple keywords, match products containing all tokens across searchable fields
+      if (tokens.length > 1) {
+        orClauses.push({
+          AND: tokens.map((token) => ({
+            OR: [
+              { title: { contains: token, mode: "insensitive" } },
+              { shortDescription: { contains: token, mode: "insensitive" } },
+              { description: { contains: token, mode: "insensitive" } },
+              { tags: { has: token } },
+            ],
+          })),
+        });
+      }
+
+      where.OR = orClauses;
+    }
+
     // 5. Safe allowlisted sorting
-    let orderBy: Prisma.ProductOrderByWithRelationInput;
+    let orderBy: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[];
     switch (sort) {
       case "newest":
         orderBy = { createdAt: "desc" };
         break;
+      case "popular":
       case "best_selling":
-        orderBy = { salesCount: "desc" };
+        orderBy = [{ salesCount: "desc" }, { ratingAvg: "desc" }];
         break;
       case "price_asc":
+      case "price_low":
         orderBy = { pricePaise: "asc" };
         break;
       case "price_desc":
+      case "price_high":
         orderBy = { pricePaise: "desc" };
         break;
       case "rating":
-        orderBy = { ratingAvg: "desc" };
+        orderBy = [{ ratingAvg: "desc" }, { reviewsCount: "desc" }];
         break;
       default:
         orderBy = { createdAt: "desc" };
@@ -215,6 +274,17 @@ export async function GET(req: NextRequest) {
         limit,
         total,
         totalPages,
+        filters: {
+          category: effectiveCategory || null,
+          query: searchQuery || null,
+          minPrice: effectiveMinPrice ?? null,
+          maxPrice: effectiveMaxPrice ?? null,
+          rating: effectiveRating ?? null,
+          seller: effectiveSeller || null,
+          licenseType: licenseType || null,
+          productType: productType || null,
+          sort,
+        },
       }
     );
   } catch (error) {

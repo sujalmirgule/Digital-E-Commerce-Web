@@ -167,12 +167,31 @@ export type AdminRejectProductInput = z.infer<typeof adminRejectProductSchema>;
 export const catalogSortOptions = [
   "newest",
   "best_selling",
+  "popular",
   "price_asc",
+  "price_low",
   "price_desc",
+  "price_high",
   "rating",
 ] as const;
 
 export type CatalogSortOption = (typeof catalogSortOptions)[number];
+
+/**
+ * Normalizes user search queries:
+ * - Trims leading and trailing whitespace
+ * - Strips ASCII control characters, null bytes, and unprintable characters
+ * - Collapses repeated whitespace into a single space
+ * - Truncates to max 100 characters
+ */
+export function normalizeSearchQuery(raw: string): string {
+  if (!raw) return "";
+  return raw
+    .replace(/[\x00-\x1F\x7F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100);
+}
 
 /**
  * Validation schema for public catalog query parameters.
@@ -197,14 +216,25 @@ export const catalogQuerySchema = z
     category: z
       .string({ invalid_type_error: "Category must be a string" })
       .trim()
+      .min(1, "Category cannot be empty")
+      .max(100, "Category cannot exceed 100 characters")
+      .regex(/^[a-zA-Z0-9_-]+$/, "Category must only contain lowercase alphanumeric characters and hyphens")
+      .optional(),
+    categorySlug: z
+      .string({ invalid_type_error: "Category slug must be a string" })
+      .trim()
       .min(1, "Category slug cannot be empty")
       .max(100, "Category slug cannot exceed 100 characters")
-      .regex(/^[a-z0-9-]+$/, "Category slug must only contain lowercase alphanumeric characters and hyphens")
+      .regex(/^[a-zA-Z0-9_-]+$/, "Category slug must only contain lowercase alphanumeric characters and hyphens")
       .optional(),
     query: z
       .string({ invalid_type_error: "Search query must be a string" })
       .trim()
-      .min(1, "Search query cannot be empty")
+      .max(100, "Search query cannot exceed 100 characters")
+      .optional(),
+    q: z
+      .string({ invalid_type_error: "Search query must be a string" })
+      .trim()
       .max(100, "Search query cannot exceed 100 characters")
       .optional(),
     minPrice: z
@@ -212,13 +242,56 @@ export const catalogQuerySchema = z
         if (val === undefined || val === null || val === "") return undefined;
         const num = Number(val);
         return isNaN(num) ? val : num;
-      }, z.number({ invalid_type_error: "minPrice must be a valid number" }).int("minPrice must be an integer in paise").min(0, "minPrice must be greater than or equal to 0").optional()),
+      }, z.number({ invalid_type_error: "minPrice must be a valid number" }).int("minPrice must be an integer in paise").min(0, "minPrice must be greater than or equal to 0").max(1000000000, "minPrice exceeds maximum limit").optional()),
+    priceMin: z
+      .preprocess((val) => {
+        if (val === undefined || val === null || val === "") return undefined;
+        const num = Number(val);
+        return isNaN(num) ? val : num;
+      }, z.number({ invalid_type_error: "priceMin must be a valid number" }).int("priceMin must be an integer in paise").min(0, "priceMin must be greater than or equal to 0").max(1000000000, "priceMin exceeds maximum limit").optional()),
     maxPrice: z
       .preprocess((val) => {
         if (val === undefined || val === null || val === "") return undefined;
         const num = Number(val);
         return isNaN(num) ? val : num;
-      }, z.number({ invalid_type_error: "maxPrice must be a valid number" }).int("maxPrice must be an integer in paise").min(0, "maxPrice must be greater than or equal to 0").optional()),
+      }, z.number({ invalid_type_error: "maxPrice must be a valid number" }).int("maxPrice must be an integer in paise").min(0, "maxPrice must be greater than or equal to 0").max(1000000000, "maxPrice exceeds maximum limit").optional()),
+    priceMax: z
+      .preprocess((val) => {
+        if (val === undefined || val === null || val === "") return undefined;
+        const num = Number(val);
+        return isNaN(num) ? val : num;
+      }, z.number({ invalid_type_error: "priceMax must be a valid number" }).int("priceMax must be an integer in paise").min(0, "priceMax must be greater than or equal to 0").max(1000000000, "priceMax exceeds maximum limit").optional()),
+    rating: z
+      .preprocess((val) => {
+        if (val === undefined || val === null || val === "") return undefined;
+        const num = Number(val);
+        return isNaN(num) ? val : num;
+      }, z.number({ invalid_type_error: "rating must be a valid number" }).min(0, "rating must be between 0 and 5").max(5, "rating must be between 0 and 5").optional()),
+    minRating: z
+      .preprocess((val) => {
+        if (val === undefined || val === null || val === "") return undefined;
+        const num = Number(val);
+        return isNaN(num) ? val : num;
+      }, z.number({ invalid_type_error: "minRating must be a valid number" }).min(0, "minRating must be between 0 and 5").max(5, "minRating must be between 0 and 5").optional()),
+    seller: z
+      .string({ invalid_type_error: "seller must be a string" })
+      .trim()
+      .min(1, "seller cannot be empty")
+      .max(100, "seller cannot exceed 100 characters")
+      .regex(/^[a-zA-Z0-9_-]+$/, "seller must only contain alphanumeric characters, hyphens, and underscores")
+      .optional(),
+    sellerSlug: z
+      .string({ invalid_type_error: "sellerSlug must be a string" })
+      .trim()
+      .min(1, "sellerSlug cannot be empty")
+      .max(100, "sellerSlug cannot exceed 100 characters")
+      .regex(/^[a-zA-Z0-9_-]+$/, "sellerSlug must only contain alphanumeric characters, hyphens, and underscores")
+      .optional(),
+    licenseType: z
+      .enum(["PERSONAL", "COMMERCIAL", "EXTENDED"], {
+        invalid_type_error: "licenseType must be one of: PERSONAL, COMMERCIAL, EXTENDED",
+      })
+      .optional(),
     productType: z
       .enum(["DIGITAL_DOWNLOAD", "SOFTWARE", "BUNDLE"], {
         invalid_type_error: "productType must be one of: DIGITAL_DOWNLOAD, SOFTWARE, BUNDLE",
@@ -235,8 +308,10 @@ export const catalogQuerySchema = z
   })
   .refine(
     (data) => {
-      if (data.minPrice !== undefined && data.maxPrice !== undefined) {
-        return data.minPrice <= data.maxPrice;
+      const min = data.priceMin !== undefined ? data.priceMin : data.minPrice;
+      const max = data.priceMax !== undefined ? data.priceMax : data.maxPrice;
+      if (min !== undefined && max !== undefined) {
+        return min <= max;
       }
       return true;
     },

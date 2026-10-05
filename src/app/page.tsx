@@ -81,6 +81,12 @@ export default function Home() {
             Test Digital Download →
           </Link>
           <Link
+            href="/products"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-bold bg-teal-600 hover:bg-teal-500 text-white transition-colors shadow-lg shadow-teal-600/25"
+          >
+            Marketplace Discovery (Feature 22) →
+          </Link>
+          <Link
             href="/dashboard"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-600/25"
           >

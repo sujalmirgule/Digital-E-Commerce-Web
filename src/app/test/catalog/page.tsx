@@ -114,12 +114,20 @@ export default function TestCatalogPage() {
               Verify published products discovery, status filtering, zero leakage, and Buy Now placeholder.
             </p>
           </div>
-          <Link
-            href="/"
-            className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-md border border-slate-800 hover:bg-slate-900 transition-colors"
-          >
-            ← Back to Home
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/products"
+              className="text-xs text-indigo-400 hover:text-white px-3 py-1.5 rounded-md border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors"
+            >
+              Open Production UI (/products) →
+            </Link>
+            <Link
+              href="/"
+              className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-md border border-slate-800 hover:bg-slate-900 transition-colors"
+            >
+              ← Back to Home
+            </Link>
+          </div>
         </div>
 
         {/* Filter Controls */}
