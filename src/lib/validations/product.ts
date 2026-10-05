@@ -120,3 +120,43 @@ export const createProductSchema = z
   );
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
+
+/**
+ * Validation schema for seller submitting a product for review.
+ * Enforces strict mode to reject any client attempts to inject status, sellerId, etc.
+ */
+export const submitProductSchema = z
+  .object({
+    notes: z
+      .string()
+      .trim()
+      .max(1000, "Submission notes cannot exceed 1,000 characters")
+      .optional()
+      .nullable(),
+  })
+  .strict({
+    message: "Unexpected fields were included in the product submission request",
+  });
+
+export type SubmitProductInput = z.infer<typeof submitProductSchema>;
+
+/**
+ * Validation schema for admin rejecting a product.
+ * Requires a non-empty rejectionReason.
+ */
+export const adminRejectProductSchema = z
+  .object({
+    rejectionReason: z
+      .string({
+        required_error: "rejectionReason is required",
+        invalid_type_error: "rejectionReason must be a string",
+      })
+      .trim()
+      .min(5, "Rejection reason must be at least 5 characters long")
+      .max(1000, "Rejection reason cannot exceed 1,000 characters"),
+  })
+  .strict({
+    message: "Unexpected fields were included in the rejection request",
+  });
+
+export type AdminRejectProductInput = z.infer<typeof adminRejectProductSchema>;
