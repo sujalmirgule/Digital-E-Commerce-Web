@@ -458,19 +458,68 @@ model Receipt {
   order              Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   
   invoiceNumber      String    @unique
-  pdfStorageKey      String?   // S3 path to generated invoice PDF
+  pdfStorageKey      String?   // S3/storage path to generated invoice PDF
   
   buyerName          String
   buyerEmail         String
   
   amountPaidPaise    Int
+  currency           String    @default("INR")
   paymentMethod      String
   paymentId          String
   
+  // Historical snapshot and template versioning
+  templateVersion    Int       @default(1)
+  templateSnapshot   Json?     // Full snapshot of ReceiptTemplate at issuance time
+  
   issuedAt           DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   @@index([orderId])
   @@index([invoiceNumber])
+}
+
+model ReceiptTemplate {
+  id                 String    @id @default("default")
+  name               String    @default("Standard Marketplace Receipt")
+  version            Int       @default(1)
+  isDefault          Boolean   @default(true)
+  
+  // Branding
+  platformName       String    @default("Digital Marketplace")
+  receiptTitle       String    @default("PAYMENT RECEIPT")
+  logoKey            String?   // Storage object key for uploaded logo
+  
+  // Colors (hex code e.g. #4F46E5)
+  primaryColor       String    @default("#4F46E5")
+  secondaryColor     String    @default("#111827")
+  textColor          String    @default("#1F2937")
+  backgroundColor    String    @default("#FFFFFF")
+  
+  // Header
+  headerVisible      Boolean   @default(true)
+  headerText         String?   @default("Official Tax Receipt & Payment Proof")
+  
+  // Footer
+  footerVisible      Boolean   @default(true)
+  footerText         String?   @default("Thank you for your business! All digital sales are governed by the license agreement.")
+  
+  // Background Image & Opacity
+  backgroundImageKey String?   // Storage object key for uploaded background
+  backgroundOpacity  Float     @default(0.1) // 0.0 to 1.0 (normalized)
+  
+  // Watermark
+  watermarkText      String?   @default("PAID")
+  watermarkOpacity   Float     @default(0.08) // 0.0 to 1.0 (normalized)
+  
+  // Contact
+  supportEmail       String?   @default("support@marketplace.com")
+  supportPhone       String?   @default("+91 98765 43210")
+  companyAddress     String?   @default("Digital Marketplace Inc., Bangalore, Karnataka, India")
+  websiteUrl         String?   @default("https://marketplace.com")
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
 
 // -------------------------------------------------------------

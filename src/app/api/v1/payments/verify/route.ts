@@ -6,6 +6,7 @@ import { paymentVerifySchema } from "@/lib/validations/payment";
 import { verifyPaymentSignature } from "@/lib/payment/razorpay";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { settleSellerEarnings } from "@/lib/services/seller-earnings";
+import { generateReceiptForOrder } from "@/lib/services/receipt";
 
 export const dynamic = "force-dynamic";
 
@@ -241,7 +242,13 @@ export async function POST(req: NextRequest) {
       console.error("[SELLER_EARNINGS_SETTLEMENT_ERROR]", err);
     });
 
-    // 8. Check if digital downloads are provisioned (Feature 12 boundary check)
+    // 8. Trigger Feature 15 automatic receipt generation (async, non-blocking, idempotent)
+    // Receipt failure must NEVER roll back the PAID state.
+    generateReceiptForOrder(updatedOrder.id).catch((err) => {
+      console.error("[RECEIPT_GENERATION_ERROR]", err);
+    });
+
+    // 9. Check if digital downloads are provisioned (Feature 12 boundary check)
     const downloadCount = await prisma.download.count({
       where: { orderId: updatedOrder.id, isActive: true },
     });
@@ -251,12 +258,13 @@ export async function POST(req: NextRequest) {
       ? "Payment verified successfully. Your files are ready."
       : "Payment verified successfully.";
 
-    // 9. Return safe checkout verification response (zero sensitive data leakage)
+    // 10. Return safe checkout verification response (zero sensitive data leakage)
     return apiSuccess(
       {
         orderId: updatedOrder.id,
         status: updatedOrder.status,
         paidAt: updatedOrder.paidAt,
+        receiptId: `REC-${updatedOrder.id.replace(/^ORD-/, "")}`,
         downloadReady,
         message,
         payment: {

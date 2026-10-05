@@ -1319,11 +1319,13 @@ async function main() {
     };
   });
 
-  await runTest("50. [Feature 12 Barrier] Zero Receipt records created during Feature 11 payment verification", async () => {
+  await runTest("50. [Feature 15 Integrated] Receipt record provisioned after payment verification", async () => {
+    // Feature 15 is now implemented and integrated — receipt generation fires async after PAID.
+    await new Promise((r) => setTimeout(r, 500));
     const receiptCount = await prisma.receipt.count({ where: { orderId: validOrderId } });
     return {
-      passed: receiptCount === 0,
-      details: `Found ${receiptCount} receipt records`,
+      passed: receiptCount >= 1,
+      details: `Found ${receiptCount} receipt records (expected >= 1 after Feature 15 integration)`,
     };
   });
 
