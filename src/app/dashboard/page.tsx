@@ -4,12 +4,25 @@ import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useDashboardAuth } from "./DashboardAuthContext";
 import { BuyerOverviewDTO } from "@/lib/services/buyer-dashboard";
+import {
+  CreditCard,
+  FolderCheck,
+  Download,
+  Receipt,
+  Star,
+  Package,
+  ArrowRight,
+  AlertCircle,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 
 export default function BuyerOverviewPage() {
-  const { token, fetchWithAuth } = useDashboardAuth();
+  const { token, fetchWithAuth, user } = useDashboardAuth();
   const [data, setData] = useState<BuyerOverviewDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const loadOverview = useCallback(async () => {
     if (!token) {
@@ -39,343 +52,328 @@ export default function BuyerOverviewPage() {
     loadOverview();
   }, [loadOverview]);
 
-  // Loading State
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 bg-slate-800 rounded w-1/4 animate-pulse"></div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-slate-900 border border-slate-800 rounded-xl p-4 animate-pulse"></div>
-          ))}
-        </div>
-        <div className="h-64 bg-slate-900 border border-slate-800 rounded-xl animate-pulse"></div>
-      </div>
-    );
-  }
+  const handleDownloadFile = async (fileId: string) => {
+    try {
+      setDownloadingId(fileId);
+      const res = await fetchWithAuth(`/api/v1/buyer/downloads/${fileId}/url`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (res.ok && json.data?.downloadUrl) {
+        window.open(json.data.downloadUrl, "_blank");
+      } else {
+        const direct = `/api/v1/buyer/downloads/${fileId}/url`;
+        const fallback = token ? `${direct}?token=${encodeURIComponent(token)}` : direct;
+        window.open(fallback, "_blank");
+      }
+    } catch {
+      const direct = `/api/v1/buyer/downloads/${fileId}/url`;
+      const fallback = token ? `${direct}?token=${encodeURIComponent(token)}` : direct;
+      window.open(fallback, "_blank");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
-  // Error State
-  if (error) {
-    return (
-      <div className="p-6 rounded-xl bg-red-950/30 border border-red-800/50 text-red-200">
-        <h2 className="text-lg font-bold text-red-100 flex items-center gap-2">
-          <span>⚠️</span> Error Loading Overview
-        </h2>
-        <p className="text-sm text-red-300 mt-1">{error}</p>
-        <button
-          onClick={loadOverview}
-          className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
+  const displayName = user?.fullName?.split(" ")[0] || data?.user?.fullName?.split(" ")[0] || "User";
+  const purchasedCount = data?.stats?.totalPurchasedProducts ?? 0;
+  const ordersCount = data?.stats?.totalOrders ?? 0;
+  const downloadsCount = data?.stats?.totalDownloads ?? 0;
+  const receiptsCount = data?.stats?.totalReceipts ?? 0;
+  const reviewsCount = data?.stats?.totalReviews ?? 0;
 
-  // Not signed in state
-  if (!token) {
-    return (
-      <div className="text-center py-16 px-4">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-900 border border-slate-800 text-3xl mb-4">
-          🔐
-        </div>
-        <h2 className="text-xl font-bold text-white mb-2">Sign In to View Your Buyer Dashboard</h2>
-        <p className="text-slate-400 text-sm max-w-md mx-auto mb-6">
-          Access your digital files, purchase history, order invoices, and personalized ratings in one place.
-        </p>
-      </div>
-    );
-  }
-
-  const stats = data?.stats;
+  const recentPurchases = data?.recentPurchases || [];
+  const recentOrders = data?.recentOrders || [];
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-8 md:space-y-10">
+      {/* 01 — Top Welcome Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Buyer Dashboard</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Welcome back, <span className="text-slate-200 font-medium">{data?.user.fullName}</span>. Here is your digital library activity.
+          <h1 className="text-3xl md:text-4xl font-serif font-normal text-[#F7EFE2] tracking-tight">
+            Good day, <span className="font-serif italic text-[#E8D5B5]">{displayName}.</span>
+          </h1>
+          <p className="text-[#BBAE9F] text-xs sm:text-sm mt-1.5 font-light">
+            Your verified digital vault and buyer account at a glance.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Quick Action Navigation */}
+        <div className="flex items-center gap-2 flex-wrap">
           <Link
             href="/dashboard/library"
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-colors"
+            className="px-4 py-2 rounded-xl bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5] text-[#E8D5B5] text-xs font-medium transition-colors"
           >
-            Go to My Library →
+            My Vault
+          </Link>
+          <Link
+            href="/products"
+            className="px-4 py-2 rounded-xl bg-[#F43F5E] hover:bg-[#F43F5E]/90 text-white text-xs font-medium transition-colors shadow-sm"
+          >
+            Explore Catalog →
           </Link>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-xs text-slate-400 font-medium flex items-center justify-between">
-            <span>Purchased Items</span>
-            <span className="text-base">📚</span>
-          </div>
-          <div className="text-2xl font-extrabold text-white mt-2">
-            {stats?.totalPurchasedProducts ?? 0}
-          </div>
-          <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1">
-            <span>●</span> Active in vault
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-xs text-slate-400 font-medium flex items-center justify-between">
-            <span>Total Orders</span>
-            <span className="text-base">📦</span>
-          </div>
-          <div className="text-2xl font-extrabold text-white mt-2">
-            {stats?.totalOrders ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-400 mt-1">
-            Lifetime orders
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-xs text-slate-400 font-medium flex items-center justify-between">
-            <span>Official Receipts</span>
-            <span className="text-base">🧾</span>
-          </div>
-          <div className="text-2xl font-extrabold text-white mt-2">
-            {stats?.totalReceipts ?? 0}
-          </div>
-          <div className="text-[11px] text-indigo-400 mt-1">
-            Tax invoices available
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-          <div className="text-xs text-slate-400 font-medium flex items-center justify-between">
-            <span>My Reviews</span>
-            <span className="text-base">⭐</span>
-          </div>
-          <div className="text-2xl font-extrabold text-white mt-2">
-            {stats?.totalReviews ?? 0}
-          </div>
-          <div className="text-[11px] text-amber-400 mt-1">
-            Ratings shared
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 col-span-2 lg:col-span-1">
-          <div className="text-xs text-slate-400 font-medium flex items-center justify-between">
-            <span>Downloads</span>
-            <span className="text-base">⬇️</span>
-          </div>
-          <div className="text-2xl font-extrabold text-white mt-2">
-            {stats?.totalDownloads ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-400 mt-1">
-            Files accessed
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Purchases Quick Access */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <span>✨</span> Recent Purchases & Instant Access
-          </h2>
-          <Link href="/dashboard/library" className="text-xs text-indigo-400 hover:text-indigo-300">
-            View All ({stats?.totalPurchasedProducts ?? 0}) →
-          </Link>
-        </div>
-
-        {(!data?.recentPurchases || data.recentPurchases.length === 0) ? (
-          <div className="p-8 rounded-xl bg-slate-900/60 border border-slate-800 text-center">
-            <div className="text-3xl mb-2">🛒</div>
-            <h3 className="font-semibold text-sm text-slate-200">No purchases yet</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-4">
-              Explore our verified digital marketplace catalog to discover high-quality assets, templates, and tools.
-            </p>
-            <Link
-              href="/test/catalog"
-              className="inline-flex px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium"
-            >
-              Browse Products
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data.recentPurchases.map((item) => (
-              <div
-                key={item.entitlementId}
-                className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between gap-4 hover:border-slate-700 transition-colors"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Owned · v{item.product.version}
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      {new Date(item.purchasedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <h3 className="font-semibold text-sm text-white mt-2 line-clamp-1">
-                    {item.product.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    By {item.product.sellerName}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
-                  {item.file ? (
-                    <a
-                      href={`/api/v1/buyer/downloads/${item.file.id}/url`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 text-center py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors"
-                    >
-                      Download File
-                    </a>
-                  ) : (
-                    <Link
-                      href="/dashboard/library"
-                      className="flex-1 text-center py-1.5 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium"
-                    >
-                      View in Library
-                    </Link>
-                  )}
-                  <Link
-                    href={`/dashboard/orders/${item.orderId}`}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs"
-                    title="View Order"
-                  >
-                    📦
-                  </Link>
-                </div>
-              </div>
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-28 bg-[#211815] border border-[#3A2930] rounded-2xl p-5"></div>
             ))}
           </div>
-        )}
-      </section>
+          <div className="h-64 bg-[#211815] border border-[#3A2930] rounded-2xl"></div>
+        </div>
+      )}
 
-      {/* Two Column Section: Recent Orders & Recent Receipts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Orders Table */}
-        <section className="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <span>📦</span> Recent Orders
+      {/* Error state */}
+      {error && (
+        <div className="p-5 rounded-2xl bg-[#211815] border border-rose-900/50 text-rose-200 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={loadOverview}
+            className="px-3.5 py-1.5 rounded-lg bg-[#F43F5E] text-white text-xs font-medium hover:bg-[#F43F5E]/90"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* 02 — Real Stat Metric Cards */}
+      {!loading && !error && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+          {/* Metric 1: Library Items */}
+          <Link
+            href="/dashboard/library"
+            className="p-5 rounded-2xl bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/40 transition-all flex items-center justify-between group shadow-lg shadow-black/30"
+          >
+            <div>
+              <div className="text-3xl lg:text-4xl font-serif font-light text-[#F7EFE2]">
+                {String(purchasedCount).padStart(2, "0")}
+              </div>
+              <div className="text-xs uppercase tracking-wider text-[#BBAE9F] mt-1 font-medium font-mono">
+                Library Items
+              </div>
+            </div>
+            <div className="w-11 h-11 rounded-xl bg-[#120A12] border border-[#3A2930] flex items-center justify-center text-[#F43F5E] group-hover:scale-105 transition-all">
+              <FolderCheck className="w-5 h-5" />
+            </div>
+          </Link>
+
+          {/* Metric 2: Total Orders */}
+          <Link
+            href="/dashboard/orders"
+            className="p-5 rounded-2xl bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/40 transition-all flex items-center justify-between group shadow-lg shadow-black/30"
+          >
+            <div>
+              <div className="text-3xl lg:text-4xl font-serif font-light text-[#F7EFE2]">
+                {String(ordersCount).padStart(2, "0")}
+              </div>
+              <div className="text-xs uppercase tracking-wider text-[#BBAE9F] mt-1 font-medium font-mono">
+                Purchases
+              </div>
+            </div>
+            <div className="w-11 h-11 rounded-xl bg-[#120A12] border border-[#3A2930] flex items-center justify-center text-[#E8D5B5] group-hover:scale-105 transition-all">
+              <CreditCard className="w-5 h-5" />
+            </div>
+          </Link>
+
+          {/* Metric 3: Downloads */}
+          <Link
+            href="/dashboard/downloads"
+            className="p-5 rounded-2xl bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/40 transition-all flex items-center justify-between group shadow-lg shadow-black/30"
+          >
+            <div>
+              <div className="text-3xl lg:text-4xl font-serif font-light text-[#F7EFE2]">
+                {String(downloadsCount).padStart(2, "0")}
+              </div>
+              <div className="text-xs uppercase tracking-wider text-[#BBAE9F] mt-1 font-medium font-mono">
+                Downloads
+              </div>
+            </div>
+            <div className="w-11 h-11 rounded-xl bg-[#120A12] border border-[#3A2930] flex items-center justify-center text-[#F43F5E] group-hover:scale-105 transition-all">
+              <Download className="w-5 h-5" />
+            </div>
+          </Link>
+
+          {/* Metric 4: Tax Receipts */}
+          <Link
+            href="/dashboard/receipts"
+            className="p-5 rounded-2xl bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/40 transition-all flex items-center justify-between group shadow-lg shadow-black/30"
+          >
+            <div>
+              <div className="text-3xl lg:text-4xl font-serif font-light text-[#F7EFE2]">
+                {String(receiptsCount).padStart(2, "0")}
+              </div>
+              <div className="text-xs uppercase tracking-wider text-[#BBAE9F] mt-1 font-medium font-mono">
+                Receipts
+              </div>
+            </div>
+            <div className="w-11 h-11 rounded-xl bg-[#120A12] border border-[#3A2930] flex items-center justify-center text-[#E8D5B5] group-hover:scale-105 transition-all">
+              <Receipt className="w-5 h-5" />
+            </div>
+          </Link>
+        </div>
+      )}
+
+      {/* 03 — Recent Purchases Section */}
+      {!loading && !error && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-serif font-medium text-[#F7EFE2] tracking-tight">
+              Recent Vault Additions
             </h2>
-            <Link href="/dashboard/orders" className="text-xs text-indigo-400 hover:text-indigo-300">
-              View All ({stats?.totalOrders ?? 0}) →
+            <Link
+              href="/dashboard/library"
+              className="text-xs text-[#F43F5E] hover:text-[#F43F5E]/80 transition-colors font-medium flex items-center gap-1 font-mono"
+            >
+              <span>View Library ({purchasedCount})</span>
+              <span>→</span>
             </Link>
           </div>
 
-          {(!data?.recentOrders || data.recentOrders.length === 0) ? (
-            <div className="py-8 text-center text-xs text-slate-400">
-              No orders recorded yet.
+          {recentPurchases.length === 0 ? (
+            <div className="py-14 text-center bg-[#211815]/40 border border-[#3A2930] rounded-3xl p-8 max-w-xl mx-auto">
+              <div className="w-12 h-12 rounded-full bg-[#120A12] border border-[#3A2930] flex items-center justify-center text-xl mx-auto mb-3">
+                <Package className="w-5 h-5 text-[#BBAE9F]" />
+              </div>
+              <h3 className="font-serif text-base text-[#F7EFE2]">No purchases yet</h3>
+              <p className="text-xs text-[#BBAE9F] max-w-sm mx-auto mt-1 mb-6">
+                You haven&apos;t acquired any digital products yet. Visit the curated catalog to discover templates, UI kits, and software.
+              </p>
+              <Link
+                href="/products"
+                className="inline-flex px-5 py-2.5 rounded-full bg-[#F43F5E] hover:bg-[#F43F5E]/90 text-white text-xs font-semibold shadow-md transition-colors"
+              >
+                Browse Catalog →
+              </Link>
             </div>
           ) : (
-            <div className="space-y-2">
-              {data.recentOrders.map((order) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {recentPurchases.slice(0, 4).map((item) => (
+                <div
+                  key={item.entitlementId}
+                  className="group p-3.5 rounded-2xl bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/40 transition-all flex flex-col justify-between shadow-md"
+                >
+                  <div>
+                    {item.product.thumbnailUrl && (
+                      <div className="aspect-[4/3] rounded-xl overflow-hidden bg-[#120A12] border border-[#3A2930] relative mb-3">
+                        <img
+                          src={item.product.thumbnailUrl}
+                          alt={item.product.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      </div>
+                    )}
+                    <h4 className="font-medium text-xs text-[#F7EFE2] truncate">
+                      {item.product.title}
+                    </h4>
+                    <p className="text-[11px] text-[#BBAE9F] mt-0.5 truncate font-mono">
+                      {new Date(item.purchasedAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-[#3A2930] flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-medium font-mono">
+                      Active
+                    </span>
+                    {item.file ? (
+                      <button
+                        onClick={() => handleDownloadFile(item.file!.id)}
+                        disabled={downloadingId === item.file.id}
+                        className="text-[11px] text-[#F43F5E] hover:text-[#F43F5E]/80 font-medium flex items-center gap-1"
+                      >
+                        {downloadingId === item.file.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <span>Download</span>
+                        )}
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/dashboard/orders/${item.orderId}`}
+                        className="text-[11px] text-[#E8D5B5] hover:underline"
+                      >
+                        Order
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 04 — Recent Orders Section */}
+      {!loading && !error && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-serif font-medium text-[#F7EFE2] tracking-tight">
+              Recent Transactions
+            </h2>
+            <Link
+              href="/dashboard/orders"
+              className="text-xs text-[#F43F5E] hover:text-[#F43F5E]/80 transition-colors font-medium flex items-center gap-1 font-mono"
+            >
+              <span>View All ({ordersCount})</span>
+              <span>→</span>
+            </Link>
+          </div>
+
+          {recentOrders.length === 0 ? (
+            <div className="py-10 text-center bg-[#211815]/30 border border-[#3A2930] rounded-2xl p-6">
+              <p className="text-xs text-[#BBAE9F]">No recent transactions found.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#3A2930] bg-[#211815] border border-[#3A2930] rounded-2xl overflow-hidden shadow-sm">
+              {recentOrders.slice(0, 5).map((order) => (
                 <div
                   key={order.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors text-xs"
+                  className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#211815]/80 transition-colors text-xs"
                 >
-                  <div className="space-y-0.5">
-                    <div className="font-semibold text-white">{order.id}</div>
-                    <div className="text-[11px] text-slate-400">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-medium text-[#F7EFE2]">
+                        {order.id}
+                      </span>
+                      <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+                        {order.status}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-[#BBAE9F]">
                       {order.firstProductTitle}
-                      {order.itemsCount > 1 ? ` +${order.itemsCount - 1} more` : ""}
+                      {order.itemsCount > 1 ? ` +${order.itemsCount - 1} more` : ""} ·{" "}
+                      {new Date(order.createdAt).toLocaleDateString()}
                     </div>
                   </div>
 
-                  <div className="text-right space-y-0.5">
-                    <div className="font-bold text-slate-200">
+                  <div className="flex items-center gap-4">
+                    <span className="font-medium text-[#F7EFE2] font-mono">
                       ₹{(order.totalAmountPaise / 100).toFixed(2)}
-                    </div>
-                    <span
-                      className={`inline-block px-1.5 py-0.5 text-[10px] rounded font-medium ${
-                        order.status === "PAID"
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-amber-500/20 text-amber-400"
-                      }`}
-                    >
-                      {order.status}
                     </span>
+                    <Link
+                      href={`/dashboard/orders/${order.id}`}
+                      className="px-3 py-1.5 rounded-xl bg-[#120A12] border border-[#3A2930] hover:border-[#E8D5B5] text-[#E8D5B5] text-xs font-medium transition-colors flex items-center gap-1"
+                    >
+                      <span>View</span>
+                      <ExternalLink className="w-3 h-3 text-[#BBAE9F]" />
+                    </Link>
                   </div>
                 </div>
               ))}
             </div>
           )}
         </section>
-
-        {/* Recent Receipts */}
-        <section className="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <span>🧾</span> Recent Receipts & Tax Invoices
-            </h2>
-            <Link href="/dashboard/receipts" className="text-xs text-indigo-400 hover:text-indigo-300">
-              View All ({stats?.totalReceipts ?? 0}) →
-            </Link>
-          </div>
-
-          {(!data?.recentReceipts || data.recentReceipts.length === 0) ? (
-            <div className="py-8 text-center text-xs text-slate-400">
-              No receipts issued yet.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {data.recentReceipts.map((rec) => (
-                <div
-                  key={rec.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 transition-colors text-xs"
-                >
-                  <div className="space-y-0.5">
-                    <div className="font-semibold text-white font-mono">{rec.invoiceNumber}</div>
-                    <div className="text-[11px] text-slate-400">
-                      {new Date(rec.issuedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-slate-200">
-                      ₹{(rec.amountPaidPaise / 100).toFixed(2)}
-                    </span>
-                    <a
-                      href={rec.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white text-[11px] font-medium transition-colors"
-                    >
-                      PDF
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* Account Info Footer Summary */}
-      <section className="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-400">
-        <div>
-          <span className="text-slate-300 font-medium">Account Status: </span>
-          <span className="text-emerald-400 font-semibold">Active Verified Buyer</span> ·
-          <span className="ml-1 text-slate-400">Member since {new Date(data?.user.createdAt || "").toLocaleDateString()}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard/profile" className="text-indigo-400 hover:underline">
-            Edit Profile Settings
-          </Link>
-          <span>·</span>
-          <Link href="/dashboard/support" className="text-slate-400 hover:underline">
-            Help Center
-          </Link>
-        </div>
-      </section>
+      )}
     </div>
   );
 }

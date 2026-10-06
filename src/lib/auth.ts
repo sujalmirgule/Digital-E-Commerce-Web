@@ -25,8 +25,26 @@ export type AuthResult =
  * and inactive / suspended accounts (403).
  */
 export async function authenticateRequest(req: NextRequest): Promise<AuthResult> {
+  let token: string | null = null;
   const authHeader = req.headers.get("authorization");
-  if (!authHeader) {
+
+  if (authHeader) {
+    const parts = authHeader.split(" ");
+    if (parts.length !== 2 || parts[0] !== "Bearer" || !parts[1]) {
+      return {
+        user: null,
+        error: { code: "UNAUTHORIZED", message: "Invalid authorization header format" },
+        status: 401,
+      };
+    }
+    token = parts[1].trim();
+  } else {
+    const queryToken = req.nextUrl?.searchParams?.get("token");
+    const cookieToken = req.cookies?.get("auth_token")?.value;
+    token = (queryToken && queryToken.trim()) || (cookieToken && cookieToken.trim()) || null;
+  }
+
+  if (!token) {
     return {
       user: null,
       error: { code: "UNAUTHORIZED", message: "Authentication is required" },
@@ -34,16 +52,6 @@ export async function authenticateRequest(req: NextRequest): Promise<AuthResult>
     };
   }
 
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2 || parts[0] !== "Bearer" || !parts[1]) {
-    return {
-      user: null,
-      error: { code: "UNAUTHORIZED", message: "Invalid authorization header format" },
-      status: 401,
-    };
-  }
-
-  const token = parts[1].trim();
   const payload = verifyJwt<JwtPayload>(token);
   if (!payload || !payload.sub) {
     return {

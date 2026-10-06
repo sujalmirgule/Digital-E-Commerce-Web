@@ -31,9 +31,10 @@ export interface JwtPayload {
  * Signs a JWT token with standard claims and default expiration of 7 days.
  */
 export function signJwt(payload: JwtPayload, options?: SignOptions): string {
+  const hasExp = "exp" in payload;
   const defaultOptions: SignOptions = {
-    expiresIn: "7d",
     algorithm: "HS256",
+    ...(hasExp ? {} : { expiresIn: "7d" }),
   };
 
   return jwt.sign(payload, JWT_SECRET, {

@@ -52,7 +52,6 @@ export function SpatialBackground({
     if (!showRipples) return;
 
     const handleClick = (e: MouseEvent) => {
-      // Avoid creating ripples on interactive buttons/inputs
       const target = e.target as HTMLElement;
       if (
         target.closest("button") ||
@@ -77,9 +76,9 @@ export function SpatialBackground({
 
   return (
     <div
-      className={`relative min-h-screen w-full bg-[#06080d] text-slate-100 overflow-hidden ${className}`}
+      className={`relative min-h-screen w-full bg-[#120A12] text-[#F7EFE2] overflow-hidden ${className}`}
     >
-      {/* Background SVG Grid & Spatial Coordinates */}
+      {/* Background SVG Subtle Luxury Grid & Coordinates */}
       <svg
         className="fixed inset-0 w-full h-full pointer-events-none z-0"
         xmlns="http://www.w3.org/2000/svg"
@@ -87,85 +86,90 @@ export function SpatialBackground({
       >
         <defs>
           <pattern
-            id="spatialGridPattern"
-            width="64"
-            height="64"
+            id="velvetGridPattern"
+            width="72"
+            height="72"
             patternUnits="userSpaceOnUse"
           >
             <path
-              d="M 64 0 L 0 0 0 64"
+              d="M 72 0 L 0 0 0 72"
               fill="none"
-              stroke="rgba(148, 163, 184, 0.04)"
-              strokeWidth="0.75"
+              stroke="#3A2930"
+              strokeWidth="0.65"
+              strokeOpacity="0.45"
             />
           </pattern>
-          <radialGradient id="spatialGlowGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(249, 115, 22, 0.08)" />
-            <stop offset="40%" stopColor="rgba(148, 163, 184, 0.03)" />
+          <radialGradient id="velvetAmbientGlow" cx="50%" cy="15%" r="60%">
+            <stop offset="0%" stopColor="rgba(244, 63, 94, 0.06)" />
+            <stop offset="50%" stopColor="rgba(33, 24, 21, 0.3)" />
             <stop offset="100%" stopColor="transparent" />
           </radialGradient>
         </defs>
 
-        <rect width="100%" height="100%" fill="url(#spatialGridPattern)" />
+        <rect width="100%" height="100%" fill="url(#velvetGridPattern)" />
+        <rect width="100%" height="100%" fill="url(#velvetAmbientGlow)" />
 
         {/* Spatial Axis Lines */}
         <line
           x1="0"
-          y1="16%"
+          y1="14%"
           x2="100%"
-          y2="16%"
-          className="grid-line"
-          style={{ animationDelay: "0.3s" }}
+          y2="14%"
+          stroke="#3A2930"
+          strokeWidth="0.5"
+          strokeOpacity="0.3"
         />
         <line
           x1="0"
-          y1="84%"
+          y1="86%"
           x2="100%"
-          y2="84%"
-          className="grid-line"
-          style={{ animationDelay: "0.8s" }}
+          y2="86%"
+          stroke="#3A2930"
+          strokeWidth="0.5"
+          strokeOpacity="0.3"
         />
         <line
-          x1="14%"
+          x1="12%"
           y1="0"
-          x2="14%"
+          x2="12%"
           y2="100%"
-          className="grid-line"
-          style={{ animationDelay: "1.2s" }}
+          stroke="#3A2930"
+          strokeWidth="0.5"
+          strokeOpacity="0.3"
         />
         <line
-          x1="86%"
+          x1="88%"
           y1="0"
-          x2="86%"
+          x2="88%"
           y2="100%"
-          className="grid-line"
-          style={{ animationDelay: "1.6s" }}
+          stroke="#3A2930"
+          strokeWidth="0.5"
+          strokeOpacity="0.3"
         />
 
-        {/* Intersection Dots */}
-        <circle cx="14%" cy="16%" r="2" className="detail-dot" style={{ animationDelay: "1.8s" }} />
-        <circle cx="86%" cy="16%" r="2" className="detail-dot" style={{ animationDelay: "2.1s" }} />
-        <circle cx="14%" cy="84%" r="2" className="detail-dot" style={{ animationDelay: "2.4s" }} />
-        <circle cx="86%" cy="84%" r="2" className="detail-dot" style={{ animationDelay: "2.7s" }} />
-        <circle cx="50%" cy="50%" r="1.5" className="detail-dot" style={{ animationDelay: "3s" }} />
+        {/* Intersection Dots in Cream */}
+        <circle cx="12%" cy="14%" r="1.5" fill="#E8D5B5" fillOpacity="0.4" />
+        <circle cx="88%" cy="14%" r="1.5" fill="#E8D5B5" fillOpacity="0.4" />
+        <circle cx="12%" cy="86%" r="1.5" fill="#E8D5B5" fillOpacity="0.4" />
+        <circle cx="88%" cy="86%" r="1.5" fill="#E8D5B5" fillOpacity="0.4" />
       </svg>
 
       {/* Floating Micro-Particles */}
       <div
         className="floating-element-animate pointer-events-none fixed"
-        style={{ top: "18%", left: "12%", animationDelay: "0.5s" }}
+        style={{ top: "18%", left: "10%", animationDelay: "0.5s" }}
       />
       <div
         className="floating-element-animate pointer-events-none fixed"
-        style={{ top: "65%", left: "82%", animationDelay: "1.2s" }}
+        style={{ top: "62%", left: "85%", animationDelay: "1.2s" }}
       />
       <div
         className="floating-element-animate pointer-events-none fixed"
-        style={{ top: "35%", left: "88%", animationDelay: "1.8s" }}
+        style={{ top: "35%", left: "90%", animationDelay: "1.8s" }}
       />
       <div
         className="floating-element-animate pointer-events-none fixed"
-        style={{ top: "78%", left: "22%", animationDelay: "2.3s" }}
+        style={{ top: "80%", left: "18%", animationDelay: "2.3s" }}
       />
 
       {/* Mouse Follow Ambient Glow */}
@@ -179,17 +183,17 @@ export function SpatialBackground({
             width: "480px",
             height: "480px",
             background:
-              "radial-gradient(circle, rgba(249, 115, 22, 0.05) 0%, rgba(100, 116, 139, 0.03) 40%, transparent 70%)",
+              "radial-gradient(circle, rgba(244, 63, 94, 0.05) 0%, rgba(232, 213, 181, 0.02) 40%, transparent 70%)",
             willChange: "left, top, opacity",
           }}
         />
       )}
 
-      {/* Click Ripples */}
+      {/* Click Ripples in Soft Rose */}
       {ripples.map((ripple) => (
         <div
           key={ripple.id}
-          className="fixed pointer-events-none rounded-full border border-orange-500/30 z-50 animate-ping"
+          className="fixed pointer-events-none rounded-full border border-rose-500/40 z-50 animate-ping"
           style={{
             left: `${ripple.x}px`,
             top: `${ripple.y}px`,
@@ -206,3 +210,4 @@ export function SpatialBackground({
   );
 }
 export default SpatialBackground;
+

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductCard, ProductCardData } from "./ProductCard";
 
 interface ProductCarouselProps {
@@ -30,7 +30,7 @@ export function ProductCarousel({ products, title, subtitle }: ProductCarouselPr
 
   const scroll = (direction: "left" | "right") => {
     if (!containerRef.current) return;
-    const cardWidth = 340;
+    const cardWidth = 320;
     containerRef.current.scrollBy({
       left: direction === "left" ? -cardWidth : cardWidth,
       behavior: "smooth",
@@ -43,17 +43,17 @@ export function ProductCarousel({ products, title, subtitle }: ProductCarouselPr
   return (
     <div className="w-full">
       {/* Header with Title and Nav Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
         <div>
-          {subtitle && (
-            <span className="text-xs font-mono font-medium tracking-[0.2em] text-orange-400 uppercase">
-              {subtitle}
-            </span>
-          )}
           {title && (
-            <h2 className="text-2xl sm:text-3xl font-light text-slate-100 mt-1 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-light font-editorial text-[#F7EFE2] tracking-tight">
               {title}
             </h2>
+          )}
+          {subtitle && (
+            <p className="text-xs sm:text-sm text-[#BBAE9F] mt-2 font-light">
+              {subtitle}
+            </p>
           )}
         </div>
 
@@ -63,7 +63,7 @@ export function ProductCarousel({ products, title, subtitle }: ProductCarouselPr
             onClick={() => scroll("left")}
             disabled={!canScrollLeft}
             aria-label="Previous products"
-            className="p-2.5 rounded-lg border border-slate-800 bg-slate-900/60 text-slate-300 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="p-2.5 rounded-full border border-[#3A2930] bg-[#211815] text-[#BBAE9F] hover:text-[#F7EFE2] hover:border-[#E8D5B5]/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -71,7 +71,7 @@ export function ProductCarousel({ products, title, subtitle }: ProductCarouselPr
             onClick={() => scroll("right")}
             disabled={!canScrollRight}
             aria-label="Next products"
-            className="p-2.5 rounded-lg border border-slate-800 bg-slate-900/60 text-slate-300 hover:text-white hover:border-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="p-2.5 rounded-full border border-[#3A2930] bg-[#211815] text-[#BBAE9F] hover:text-[#F7EFE2] hover:border-[#E8D5B5]/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -88,7 +88,7 @@ export function ProductCarousel({ products, title, subtitle }: ProductCarouselPr
         {products.map((product) => (
           <div
             key={product.id}
-            className="min-w-[280px] sm:min-w-[320px] max-w-[340px] flex-shrink-0 snap-start"
+            className="min-w-[280px] sm:min-w-[300px] max-w-[320px] flex-shrink-0 snap-start"
           >
             <ProductCard product={product} />
           </div>
@@ -98,3 +98,4 @@ export function ProductCarousel({ products, title, subtitle }: ProductCarouselPr
   );
 }
 export default ProductCarousel;
+

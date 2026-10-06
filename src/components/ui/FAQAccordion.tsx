@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, HelpCircle } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 interface FAQItem {
   question: string;
@@ -10,44 +10,44 @@ interface FAQItem {
 
 const faqs: FAQItem[] = [
   {
-    question: "What is this platform?",
+    question: "What is this marketplace?",
     answer:
-      "Aura is a specialized digital product marketplace connecting software creators, designers, and authors with buyers looking for high-quality, verified digital tools, templates, audio, UI kits, and documents.",
+      "Marketify is an editorial digital marketplace designed for creators and builders. We connect independent developers, designers, and authors with buyers looking for high-quality, verified digital tools, templates, UI kits, codebases, and audio resources.",
   },
   {
     question: "What can I buy on the marketplace?",
     answer:
-      "You can discover and purchase curated digital downloads including developer source code, component packages, UI design kits, digital templates, and audio assets directly from verified creators.",
+      "You can discover and purchase digital tools, SaaS boilerplates, Notion workspaces, developer UI kits, icon systems, e-books, and creative assets — all verified for quality and hosted securely.",
   },
   {
     question: "How does purchasing work?",
     answer:
-      "When you click 'Buy Now', a secure Razorpay checkout order is generated using the authoritative database price (in exact integer paise). You complete payment using UPI, Cards, or NetBanking, and our servers verify the cryptographic signature before provisioning your access.",
+      "Select any digital product and click 'Buy Now'. Payment is processed with 256-bit TLS encryption using Razorpay (supporting UPI, Cards, and NetBanking). The system operates on exact integer paise calculations with zero floating-point discrepancies.",
   },
   {
     question: "How do I become a seller?",
     answer:
-      "Any registered user can apply to become a seller through the Seller Portal by providing their store name, bio, PAN, and bank payout information. Once submitted, our admin team reviews your application.",
+      "Apply through the Creator Studio with your store details and payout information. Once approved by our moderation team, you can immediately publish products and retain 90% of all gross sales.",
   },
   {
     question: "How does product approval work?",
     answer:
-      "After creating a draft product and uploading your digital zip/package via presigned URL, you submit it for moderation. Platform administrators review the product content, description, and file integrity before approving it to 'PUBLISHED' status.",
+      "Every product submitted by creators undergoes thorough administrative review to verify file integrity, descriptions, licensing terms, and asset quality before being published to the public marketplace.",
   },
   {
     question: "Where can I access my purchased products?",
     answer:
-      "Once payment is captured, an atomic Entitlement is granted to your account. You can immediately access and download all your purchases from your Buyer Dashboard under the 'Digital Library' tab.",
-  },
-  {
-    question: "How are payments processed?",
-    answer:
-      "Payments are securely processed through Razorpay using industry-standard TLS encryption. The platform operates on a strict integer paise ledger with an automated 10% platform fee and 90% net seller earnings settlement.",
+      "Upon payment confirmation, lifetime access is instantly granted to your account. You can view, organize, and download all your assets in your Buyer Dashboard under 'Digital Library'.",
   },
   {
     question: "How do secure downloads work?",
     answer:
-      "Your digital files are stored in private object storage. When you request a download, our server verifies your active purchase entitlement and generates a signed URL with a strictly enforced 15-minute expiration window to protect creator assets.",
+      "Your purchased assets are stored in private cloud storage. When you initiate a download, our server authenticates your purchase entitlement and generates a signed URL with a strict 15-minute expiration window to protect creator intellectual property.",
+  },
+  {
+    question: "How are creator payments processed?",
+    answer:
+      "Creator earnings are credited automatically to your studio ledger after the standard 10% platform fee. Available balances can be settled directly to your verified bank account.",
   },
 ];
 
@@ -59,35 +59,44 @@ export function FAQAccordion() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-3">
+    <div className="w-full max-w-3xl mx-auto flex flex-col gap-3">
       {faqs.map((faq, idx) => {
         const isOpen = openIndex === idx;
         return (
           <div
             key={idx}
-            className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+            className={`rounded-2xl border transition-all duration-200 overflow-hidden bg-[#211815] ${
               isOpen
-                ? "border-orange-500/40 bg-slate-900/60 shadow-lg shadow-black/40"
-                : "border-slate-800/80 bg-slate-900/30 hover:border-slate-700/80 hover:bg-slate-900/40"
+                ? "border-[#E8D5B5]/60 shadow-lg shadow-black/50"
+                : "border-[#3A2930] hover:border-[#523B44]"
             }`}
           >
             <button
               onClick={() => toggle(idx)}
-              className="w-full px-6 py-4 sm:py-5 flex items-center justify-between text-left gap-4"
+              className="w-full px-6 py-4 sm:py-5 flex items-center justify-between text-left gap-4 group"
               aria-expanded={isOpen}
             >
-              <span className="text-sm sm:text-base font-medium text-slate-200 hover:text-orange-400 transition-colors">
+              <span
+                className={`text-sm sm:text-base font-medium transition-colors ${
+                  isOpen ? "text-[#F7EFE2]" : "text-[#E8D5B5] group-hover:text-[#F7EFE2]"
+                }`}
+              >
                 {faq.question}
               </span>
               <ChevronDown
-                className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform duration-200 ${
-                  isOpen ? "rotate-180 text-orange-400" : ""
+                className={`w-4 h-4 text-[#BBAE9F] shrink-0 transition-transform duration-200 ${
+                  isOpen ? "rotate-180 text-[#F43F5E]" : "group-hover:text-[#E8D5B5]"
                 }`}
               />
             </button>
 
+            {/* Rose accent line that expands beneath the question */}
             {isOpen && (
-              <div className="px-6 pb-5 pt-1 border-t border-slate-800/40 text-xs sm:text-sm text-slate-400 leading-relaxed font-light">
+              <div className="h-0.5 w-full bg-gradient-to-r from-[#F43F5E] via-[#FB7185]/60 to-transparent" />
+            )}
+
+            {isOpen && (
+              <div className="px-6 pb-5 pt-3 text-xs sm:text-sm text-[#BBAE9F] leading-relaxed font-light">
                 {faq.answer}
               </div>
             )}
@@ -98,3 +107,4 @@ export function FAQAccordion() {
   );
 }
 export default FAQAccordion;
+

@@ -61,46 +61,42 @@ export default function BuyerOrderDetailPage() {
       const res = await fetchWithAuth(`/api/v1/buyer/orders/${orderId}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: cancelReason.trim() || "Buyer cancelled order" }),
+        body: JSON.stringify({ reason: cancelReason.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to cancel order");
+      const json = await res.json();
+      if (res.ok) {
+        setCancelModalOpen(false);
+        loadOrderDetail();
+      } else {
+        alert(json.error?.message || "Failed to cancel order");
       }
-      setCancelModalOpen(false);
-      setCancelReason("");
-      loadOrderDetail();
-    } catch (err: any) {
-      alert(err.message || "Failed to cancel order");
+    } catch {
+      alert("Network error cancelling order");
     } finally {
       setCancelling(false);
     }
   };
 
-  const handleRequestRefund = async () => {
+  const handleRequestRefund = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!token || !orderId) return;
-    if (!refundReason.trim() || refundReason.trim().length < 5) {
-      alert("Please provide a reason for the refund (minimum 5 characters).");
-      return;
-    }
-
     try {
       setRequestingRefund(true);
-      const res = await fetchWithAuth(`/api/v1/buyer/orders/${orderId}/refund-request`, {
+      const res = await fetchWithAuth(`/api/v1/buyer/orders/${orderId}/refund`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: refundReason.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to submit refund request");
+      const json = await res.json();
+      if (res.ok) {
+        setRefundModalOpen(false);
+        setRefundSuccessMsg("Your refund request has been registered and is under administrative review.");
+        loadOrderDetail();
+      } else {
+        alert(json.error?.message || "Failed to submit refund request");
       }
-      setRefundModalOpen(false);
-      setRefundReason("");
-      setRefundSuccessMsg("Your refund request has been submitted and is under administrative review.");
-      loadOrderDetail();
-    } catch (err: any) {
-      alert(err.message || "Failed to submit refund request");
+    } catch {
+      alert("Network error submitting refund request");
     } finally {
       setRequestingRefund(false);
     }
@@ -108,30 +104,30 @@ export default function BuyerOrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-6 bg-slate-800 rounded w-1/4 animate-pulse"></div>
-        <div className="h-48 bg-slate-900 border border-slate-800 rounded-xl animate-pulse"></div>
-        <div className="h-64 bg-slate-900 border border-slate-800 rounded-xl animate-pulse"></div>
+      <div className="space-y-6 animate-pulse max-w-4xl">
+        <div className="h-6 w-32 bg-velvet-mocha rounded"></div>
+        <div className="h-44 bg-velvet-mocha rounded-2xl border border-velvet-border/80"></div>
+        <div className="h-64 bg-velvet-mocha rounded-2xl border border-velvet-border/80"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-8 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-4">
+      <div className="p-8 rounded-3xl bg-velvet-mocha border border-velvet-border text-center space-y-4 max-w-2xl mx-auto">
         <div className="text-3xl">⚠️</div>
-        <h2 className="text-lg font-bold text-white">Unable to Display Order</h2>
-        <p className="text-sm text-red-400 max-w-md mx-auto">{error}</p>
+        <h2 className="text-lg font-serif text-velvet-cream-soft">Unable to Display Order</h2>
+        <p className="text-sm text-rose-300 max-w-md mx-auto">{error}</p>
         <div className="flex items-center justify-center gap-3 pt-2">
           <Link
             href="/dashboard/orders"
-            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+            className="px-4 py-2 rounded-xl bg-velvet-plum hover:bg-velvet-mocha-elevated text-velvet-cream text-xs font-medium border border-velvet-border"
           >
             ← Back to Orders
           </Link>
           <button
             onClick={loadOrderDetail}
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+            className="px-4 py-2 rounded-xl bg-velvet-rose hover:bg-velvet-rose-soft text-white text-xs font-medium"
           >
             Retry
           </button>
@@ -149,12 +145,12 @@ export default function BuyerOrderDetailPage() {
   const isCancelled = order.status === "CANCELLED";
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-8 max-w-4xl">
       {/* Top breadcrumb & actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-velvet-border/80">
         <Link
           href="/dashboard/orders"
-          className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 font-medium transition-colors"
+          className="text-xs text-velvet-cream-muted hover:text-velvet-cream flex items-center gap-1.5 transition-colors"
         >
           <span>←</span> Back to Order History
         </Link>
@@ -165,7 +161,7 @@ export default function BuyerOrderDetailPage() {
               href={order.receipt.downloadUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+              className="px-4 py-1.5 rounded-full bg-velvet-rose hover:bg-velvet-rose-soft text-white text-xs font-medium flex items-center gap-1.5 transition-colors shadow-sm"
             >
               <span>🧾</span> Download PDF Receipt
             </a>
@@ -174,7 +170,7 @@ export default function BuyerOrderDetailPage() {
           {isPending && (
             <button
               onClick={() => setCancelModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold transition-colors"
+              className="px-3.5 py-1.5 rounded-full bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 border border-rose-800/40 text-xs font-medium transition-colors"
             >
               Cancel Order
             </button>
@@ -183,7 +179,7 @@ export default function BuyerOrderDetailPage() {
           {isPaid && (
             <button
               onClick={() => setRefundModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+              className="px-3.5 py-1.5 rounded-full bg-velvet-plum hover:bg-velvet-mocha-elevated text-velvet-cream border border-velvet-border text-xs font-medium transition-colors"
             >
               Request Refund
             </button>
@@ -191,17 +187,17 @@ export default function BuyerOrderDetailPage() {
 
           <Link
             href="/dashboard/support"
-            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+            className="px-3.5 py-1.5 rounded-full bg-velvet-plum hover:bg-velvet-mocha-elevated text-velvet-cream-muted hover:text-velvet-cream border border-velvet-border text-xs font-medium transition-colors"
           >
-            Need Help?
+            Support
           </Link>
         </div>
       </div>
 
       {refundSuccessMsg && (
-        <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-800/40 text-purple-200 text-xs flex items-center justify-between">
           <span>{refundSuccessMsg}</span>
-          <button onClick={() => setRefundSuccessMsg(null)} className="text-purple-400 hover:text-white text-sm">
+          <button onClick={() => setRefundSuccessMsg(null)} className="text-purple-300 hover:text-white text-sm">
             ×
           </button>
         </div>
@@ -209,14 +205,14 @@ export default function BuyerOrderDetailPage() {
 
       {/* Status Notice Alerts */}
       {isRefunded && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 space-y-1">
-          <div className="font-bold flex items-center gap-2 text-sm text-rose-400">
+        <div className="p-4 rounded-2xl bg-rose-950/30 border border-rose-800/40 text-xs text-rose-300 space-y-1">
+          <div className="font-serif font-medium flex items-center gap-2 text-sm text-rose-300">
             <span>↺</span> Order Refunded
           </div>
-          <p>
-            This order has been fully refunded to your original payment method. Entitlements and digital download access have been revoked.
+          <p className="text-velvet-cream-muted">
+            This order has been fully refunded to your original payment method. Entitlements and digital access have been revoked.
             {order.providerRefundId && (
-              <span className="block mt-1 font-mono text-slate-400">
+              <span className="block mt-1 font-mono text-velvet-cream-muted/70">
                 Gateway Reference: {order.providerRefundId}
               </span>
             )}
@@ -225,14 +221,14 @@ export default function BuyerOrderDetailPage() {
       )}
 
       {isRefundRequested && (
-        <div className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 space-y-1">
-          <div className="font-bold flex items-center gap-2 text-sm text-purple-400">
+        <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-800/40 text-xs text-purple-200 space-y-1">
+          <div className="font-serif font-medium flex items-center gap-2 text-sm text-purple-300">
             <span>⏳</span> Refund Request Under Review
           </div>
-          <p>
-            Your refund request for this order is currently being reviewed by our administration team.
+          <p className="text-velvet-cream-muted">
+            Your refund request for this order is currently being reviewed by marketplace administration.
             {order.refundReason && (
-              <span className="block mt-1 italic text-slate-300">
+              <span className="block mt-1 italic text-velvet-cream">
                 Your stated reason: &quot;{order.refundReason}&quot;
               </span>
             )}
@@ -240,42 +236,26 @@ export default function BuyerOrderDetailPage() {
         </div>
       )}
 
-      {isCancelled && (
-        <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700 text-xs text-slate-300 space-y-1">
-          <div className="font-bold flex items-center gap-2 text-sm text-slate-200">
-            <span>✕</span> Order Cancelled
-          </div>
-          <p>
-            This order was cancelled before payment was captured.
-            {order.failureReason && (
-              <span className="block mt-1 text-slate-400">
-                Reason: {order.failureReason}
-              </span>
-            )}
-          </p>
-        </div>
-      )}
-
       {/* Order Summary Header Card */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+      <div className="p-6 rounded-3xl bg-velvet-mocha border border-velvet-border/80 space-y-4 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="text-xs text-slate-400">Order Reference</div>
-            <div className="text-xl font-mono font-extrabold text-white">{order.id}</div>
+            <div className="text-[10px] uppercase tracking-wider text-velvet-cream-muted font-medium">Order Reference</div>
+            <div className="text-xl font-mono text-velvet-cream-soft font-semibold">{order.id}</div>
           </div>
 
           <div className="flex items-center gap-2">
             <span
-              className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+              className={`px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
                 order.status === "PAID"
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
                   : order.status === "PENDING" || order.status === "PAYMENT_PROCESSING"
-                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/20"
                   : order.status === "REFUND_REQUESTED"
-                  ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                  ? "bg-purple-500/15 text-purple-400 border border-purple-500/20"
                   : order.status === "REFUNDED"
-                  ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                  : "bg-red-500/20 text-red-400 border border-red-500/30"
+                  ? "bg-rose-500/15 text-rose-400 border border-rose-500/20"
+                  : "bg-red-500/15 text-red-400 border border-red-500/20"
               }`}
             >
               Status: {order.status.replace("_", " ")}
@@ -283,28 +263,28 @@ export default function BuyerOrderDetailPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-800/80 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-velvet-border/60 text-xs">
           <div>
-            <div className="text-slate-400">Date Placed</div>
-            <div className="font-semibold text-slate-200 mt-0.5">
+            <div className="text-velvet-cream-muted text-[11px]">Date Placed</div>
+            <div className="font-serif text-velvet-cream-soft mt-0.5">
               {new Date(order.createdAt).toLocaleDateString()}
             </div>
           </div>
           <div>
-            <div className="text-slate-400">Payment Status</div>
-            <div className="font-semibold text-slate-200 mt-0.5">
+            <div className="text-velvet-cream-muted text-[11px]">Payment Status</div>
+            <div className="font-serif text-velvet-cream-soft mt-0.5">
               {order.paidAt ? (isRefunded ? "Refunded" : "Completed") : isCancelled ? "Cancelled" : "Pending"}
             </div>
           </div>
           <div>
-            <div className="text-slate-400">Payment Method</div>
-            <div className="font-semibold text-slate-200 mt-0.5">
+            <div className="text-velvet-cream-muted text-[11px]">Payment Method</div>
+            <div className="font-serif text-velvet-cream-soft mt-0.5">
               {order.payment?.method || "Razorpay Gateway"}
             </div>
           </div>
           <div>
-            <div className="text-slate-400">Transaction ID</div>
-            <div className="font-semibold font-mono text-slate-200 mt-0.5 truncate">
+            <div className="text-velvet-cream-muted text-[11px]">Transaction ID</div>
+            <div className="font-mono text-velvet-cream-muted mt-0.5 truncate text-[11px]">
               {order.payment?.razorpayPaymentId || "N/A"}
             </div>
           </div>
@@ -312,18 +292,18 @@ export default function BuyerOrderDetailPage() {
       </div>
 
       {/* Itemized Order Breakdown */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
-        <h2 className="font-bold text-white text-base">Purchased Digital Items</h2>
+      <div className="p-6 rounded-3xl bg-velvet-mocha border border-velvet-border/80 space-y-4 shadow-sm">
+        <h2 className="font-serif font-medium text-velvet-cream-soft text-base">Purchased Digital Items</h2>
 
-        <div className="divide-y divide-slate-800">
+        <div className="divide-y divide-velvet-border/60">
           {order.items.map((item) => (
             <div key={item.id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1 flex-1">
-                <div className="font-bold text-white text-sm">{item.productTitle}</div>
-                <div className="text-xs text-slate-400 flex items-center gap-2">
-                  <span>Seller: <strong className="text-slate-300">{item.sellerStoreName}</strong></span>
+                <div className="font-serif font-medium text-velvet-cream-soft text-sm">{item.productTitle}</div>
+                <div className="text-xs text-velvet-cream-muted flex items-center gap-2">
+                  <span>Seller: <strong className="text-velvet-cream font-normal">{item.sellerStoreName}</strong></span>
                   <span>·</span>
-                  <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 font-mono">
+                  <span className="px-2 py-0.5 rounded-full bg-velvet-plum text-[10px] text-velvet-cream font-mono border border-velvet-border">
                     {item.licenseType} LICENSE
                   </span>
                 </div>
@@ -331,90 +311,73 @@ export default function BuyerOrderDetailPage() {
 
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <div className="font-bold text-white text-sm">
+                  <div className="font-serif text-velvet-cream text-base">
                     ₹{(item.pricePaise / 100).toFixed(2)}
                   </div>
-                  <div className="text-[10px] text-emerald-400">1x Digital Copy</div>
+                  <div className="text-[10px] text-emerald-400">1x Vault Entitlement</div>
                 </div>
 
                 {isRefunded ? (
-                  <span className="px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-400 text-xs font-semibold border border-rose-500/20">
-                    Access Revoked
+                  <span className="px-3 py-1.5 rounded-full bg-rose-950/30 text-rose-300 text-xs font-medium border border-rose-800/40">
+                    Revoked
                   </span>
                 ) : item.productFileId && isPaid ? (
                   <a
                     href={`/api/v1/buyer/downloads/${item.productFileId}/url`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
+                    className="px-4 py-2 rounded-xl bg-velvet-rose hover:bg-velvet-rose-soft text-white text-xs font-medium transition-colors shadow-sm"
                   >
-                    Download
+                    Download File
                   </a>
-                ) : null}
+                ) : (
+                  <Link
+                    href="/dashboard/library"
+                    className="px-3.5 py-1.5 rounded-xl bg-velvet-plum hover:bg-velvet-mocha-elevated text-velvet-cream border border-velvet-border text-xs font-medium"
+                  >
+                    View Library
+                  </Link>
+                )}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Financial Calculation Summary */}
-        <div className="pt-4 border-t border-slate-800 space-y-2 text-xs text-slate-400">
-          <div className="flex justify-between">
-            <span>Subtotal:</span>
-            <span className="text-slate-200">₹{(order.subtotalPaise / 100).toFixed(2)}</span>
-          </div>
-          {order.discountPaise > 0 && (
-            <div className="flex justify-between text-emerald-400">
-              <span>Promotional Discount:</span>
-              <span>-₹{(order.discountPaise / 100).toFixed(2)}</span>
-            </div>
-          )}
-          <div className="flex justify-between font-bold text-sm text-white pt-2 border-t border-slate-800">
-            <span>Total Paid (INR):</span>
-            <span className={isRefunded ? "text-rose-400 line-through" : "text-indigo-400"}>
-              ₹{(order.totalAmountPaise / 100).toFixed(2)}
-            </span>
-          </div>
-          {isRefunded && (
-            <div className="flex justify-between font-bold text-sm text-rose-400">
-              <span>Total Refunded (INR):</span>
-              <span>₹{(order.totalAmountPaise / 100).toFixed(2)}</span>
-            </div>
-          )}
+        {/* Total Summary */}
+        <div className="pt-4 border-t border-velvet-border/70 flex justify-between items-center text-sm">
+          <span className="font-serif text-velvet-cream-muted">Total Paid</span>
+          <span className="font-serif text-2xl text-velvet-cream">
+            ₹{(order.totalAmountPaise / 100).toFixed(2)}
+          </span>
         </div>
       </div>
 
-      {/* Cancel Order Modal */}
+      {/* Cancellation Modal */}
       {cancelModalOpen && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
-            <h3 className="text-base font-bold text-white">Cancel Order</h3>
-            <p className="text-xs text-slate-300">
-              Are you sure you want to cancel Order <span className="font-mono text-white font-bold">{order.id}</span>?
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full rounded-3xl bg-velvet-mocha border border-velvet-border p-6 space-y-4 shadow-2xl">
+            <h3 className="font-serif text-base text-velvet-cream-soft">Cancel Pending Order</h3>
+            <p className="text-xs text-velvet-cream-muted">
+              Are you sure you want to cancel this pending order? This action cannot be undone.
             </p>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1 font-semibold">
-                Reason for cancellation (optional)
-              </label>
-              <input
-                type="text"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="e.g. Changed my mind"
-                className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
-              />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <input
+              type="text"
+              placeholder="Reason for cancellation (optional)"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full px-3.5 py-2 text-xs rounded-xl bg-velvet-plum border border-velvet-border text-velvet-cream placeholder-velvet-cream-muted/50 focus:outline-none focus:border-velvet-cream"
+            />
+            <div className="flex justify-end gap-2 pt-2 border-t border-velvet-border/70">
               <button
                 onClick={() => setCancelModalOpen(false)}
-                disabled={cancelling}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold"
+                className="px-3.5 py-1.5 rounded-xl bg-velvet-plum text-velvet-cream-muted hover:text-velvet-cream text-xs border border-velvet-border"
               >
                 Keep Order
               </button>
               <button
                 onClick={handleCancelOrder}
                 disabled={cancelling}
-                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
+                className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium disabled:opacity-50"
               >
                 {cancelling ? "Cancelling..." : "Confirm Cancellation"}
               </button>
@@ -423,46 +386,40 @@ export default function BuyerOrderDetailPage() {
         </div>
       )}
 
-      {/* Request Refund Modal */}
+      {/* Refund Request Modal */}
       {refundModalOpen && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
-            <h3 className="text-base font-bold text-white">Request a Refund</h3>
-            <p className="text-xs text-slate-300">
-              Submit a formal refund request for Order <span className="font-mono text-white font-bold">{order.id}</span>.
-              Our support team will review your submission in accordance with our marketplace policy.
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full rounded-3xl bg-velvet-mocha border border-velvet-border p-6 space-y-4 shadow-2xl">
+            <h3 className="font-serif text-base text-velvet-cream-soft">Request Order Refund</h3>
+            <p className="text-xs text-velvet-cream-muted">
+              Please state why you are requesting a refund. Our curation and support team will inspect the request.
             </p>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1 font-semibold">
-                Reason for refund * (minimum 5 characters)
-              </label>
+            <form onSubmit={handleRequestRefund} className="space-y-4">
               <textarea
+                required
                 rows={3}
+                placeholder="State your reason (minimum 5 characters)..."
                 value={refundReason}
                 onChange={(e) => setRefundReason(e.target.value)}
-                placeholder="Please describe why you are requesting a refund..."
-                className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                className="w-full p-3 text-xs rounded-xl bg-velvet-plum border border-velvet-border text-velvet-cream placeholder-velvet-cream-muted/50 focus:outline-none focus:border-velvet-cream font-light"
               />
-            </div>
-            <p className="text-[11px] text-slate-500">
-              Note: If approved, access to digital downloads will be revoked and funds returned to your original payment method.
-            </p>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setRefundModalOpen(false)}
-                disabled={requestingRefund}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRequestRefund}
-                disabled={requestingRefund}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
-              >
-                {requestingRefund ? "Submitting..." : "Submit Request"}
-              </button>
-            </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-velvet-border/70">
+                <button
+                  type="button"
+                  onClick={() => setRefundModalOpen(false)}
+                  className="px-3.5 py-1.5 rounded-xl bg-velvet-plum text-velvet-cream-muted hover:text-velvet-cream text-xs border border-velvet-border"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={requestingRefund || refundReason.trim().length < 5}
+                  className="px-4 py-1.5 rounded-xl bg-velvet-rose hover:bg-velvet-rose-soft text-white text-xs font-medium disabled:opacity-50"
+                >
+                  {requestingRefund ? "Submitting..." : "Submit Refund Request"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

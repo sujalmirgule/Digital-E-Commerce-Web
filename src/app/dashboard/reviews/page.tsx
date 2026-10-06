@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useDashboardAuth } from "../DashboardAuthContext";
 import { BuyerReviewItemDTO } from "@/lib/services/buyer-dashboard";
+import { Star, Edit3, Trash2, AlertCircle, Plus } from "lucide-react";
 
 export default function BuyerReviewsPage() {
   const { token, fetchWithAuth } = useDashboardAuth();
@@ -83,7 +84,7 @@ export default function BuyerReviewsPage() {
   };
 
   const handleDeleteReview = async (id: string) => {
-    if (!confirm("Are you sure you want to delete your review?")) return;
+    if (!confirm("Are you sure you want to remove your review?")) return;
     try {
       const res = await fetchWithAuth(`/api/v1/reviews/${id}`, {
         method: "DELETE",
@@ -99,38 +100,47 @@ export default function BuyerReviewsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-4xl">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#3A2930]">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">My Product Reviews</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
+          <h1 className="text-3xl font-serif font-normal text-[#F7EFE2] tracking-tight">
+            My Product Reviews
+          </h1>
+          <p className="text-[#BBAE9F] text-xs mt-1">
             Manage your verified buyer ratings and written reviews across purchased digital products.
           </p>
         </div>
 
         <Link
           href="/dashboard/library"
-          className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold self-start sm:self-auto transition-colors"
+          className="px-3.5 py-2 rounded-xl bg-[#F43F5E] hover:bg-[#F43F5E]/90 text-white text-xs font-medium self-start sm:self-auto transition-colors flex items-center gap-1.5 shadow-sm"
         >
-          Review a Purchase →
+          <Plus className="w-3.5 h-3.5" />
+          <span>Review a Purchase</span>
         </Link>
       </div>
 
       {/* Loading state */}
       {loading && (
-        <div className="space-y-3">
+        <div className="space-y-3 animate-pulse">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 bg-slate-900 border border-slate-800 rounded-xl p-4 animate-pulse"></div>
+            <div key={i} className="h-28 bg-[#211815] border border-[#3A2930] rounded-2xl p-4"></div>
           ))}
         </div>
       )}
 
       {/* Error state */}
       {error && (
-        <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/50 text-red-200 text-sm">
-          <span>⚠️ {error}</span>
-          <button onClick={loadReviews} className="ml-3 underline hover:text-white">
+        <div className="p-4 rounded-xl bg-[#211815] border border-rose-900/50 text-rose-200 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={loadReviews}
+            className="px-3 py-1 rounded-lg bg-[#F43F5E] text-white text-xs font-medium hover:bg-[#F43F5E]/90"
+          >
             Retry
           </button>
         </div>
@@ -138,17 +148,19 @@ export default function BuyerReviewsPage() {
 
       {/* Empty State */}
       {!loading && !error && reviews.length === 0 && (
-        <div className="py-16 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl p-8">
-          <div className="text-4xl mb-3">⭐</div>
-          <h3 className="font-bold text-base text-white">No reviews submitted yet</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-5">
+        <div className="py-20 text-center bg-[#211815]/40 border border-[#3A2930] rounded-3xl p-8 max-w-lg mx-auto">
+          <div className="w-12 h-12 rounded-full bg-[#120A12] border border-[#3A2930] flex items-center justify-center text-xl mx-auto mb-3">
+            <Star className="w-5 h-5 text-[#BBAE9F]" />
+          </div>
+          <h3 className="font-serif text-base text-[#F7EFE2]">No reviews submitted yet</h3>
+          <p className="text-xs text-[#BBAE9F] max-w-sm mx-auto mt-1 mb-6">
             Share your feedback on items in your digital library to help other buyers and support creators.
           </p>
           <Link
             href="/dashboard/library"
-            className="inline-flex px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+            className="inline-flex px-5 py-2.5 rounded-full bg-[#F43F5E] hover:bg-[#F43F5E]/90 text-white text-xs font-semibold shadow-md transition-colors"
           >
-            Go to My Library
+            Go to My Library →
           </Link>
         </div>
       )}
@@ -159,65 +171,71 @@ export default function BuyerReviewsPage() {
           {reviews.map((rev) => (
             <div
               key={rev.id}
-              className="p-5 rounded-xl bg-slate-900 border border-slate-800 flex flex-col justify-between gap-4 hover:border-slate-700 transition-colors"
+              className="p-5 rounded-2xl bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/40 flex flex-col justify-between gap-4 transition-all shadow-sm"
             >
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-white text-sm">
+                    <span className="font-medium text-[#F7EFE2] text-sm">
                       {rev.productTitle}
                     </span>
-                    <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 font-mono">
                       Verified Buyer
                     </span>
                   </div>
 
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-[#BBAE9F]/70 font-mono">
                     {new Date(rev.createdAt).toLocaleDateString()}
                   </span>
                 </div>
 
                 {/* Stars and Title */}
                 <div className="flex items-center gap-2">
-                  <div className="flex text-amber-400 text-sm">
+                  <div className="flex text-amber-400 text-xs">
                     {"★".repeat(rev.rating)}
                     {"☆".repeat(5 - rev.rating)}
                   </div>
-                  <span className="font-bold text-slate-200 text-xs">{rev.title}</span>
+                  {rev.title && (
+                    <span className="font-medium text-[#E8D5B5] text-xs">{rev.title}</span>
+                  )}
                 </div>
 
                 {/* Comment body */}
-                <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/40 p-3 rounded-lg border border-slate-800/80">
+                <p className="text-xs text-[#BBAE9F] leading-relaxed bg-[#120A12]/60 p-3 rounded-xl border border-[#3A2930]">
                   {rev.comment}
                 </p>
 
                 {/* Seller Reply if present */}
-                {rev.sellerReply && (
-                  <div className="ml-4 pl-3 border-l-2 border-indigo-500 text-xs text-slate-400 space-y-0.5">
-                    <div className="font-semibold text-indigo-300">Creator Response:</div>
-                    <p className="text-slate-300 italic">{rev.sellerReply}</p>
+                {(rev as unknown as { sellerReply?: string })?.sellerReply && (
+                  <div className="ml-4 pl-3 border-l-2 border-[#F43F5E] text-xs space-y-0.5">
+                    <div className="font-medium text-[#F43F5E]">Creator Response:</div>
+                    <p className="text-[#BBAE9F] italic">
+                      {(rev as unknown as { sellerReply?: string })?.sellerReply}
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Action buttons */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/60 text-xs">
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#3A2930]/80">
                 <button
                   onClick={() => {
                     setEditingReview(rev);
                     setEditRating(rev.rating);
-                    setEditTitle(rev.title);
+                    setEditTitle(rev.title || "");
                     setEditComment(rev.comment);
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium transition-colors"
+                  className="px-3 py-1.5 rounded-xl bg-[#120A12] border border-[#3A2930] hover:border-[#E8D5B5] text-[#E8D5B5] text-xs font-medium transition-colors flex items-center gap-1.5"
                 >
-                  Edit Review
+                  <Edit3 className="w-3 h-3 text-[#BBAE9F]" />
+                  <span>Edit</span>
                 </button>
                 <button
                   onClick={() => handleDeleteReview(rev.id)}
-                  className="px-3 py-1.5 rounded-lg bg-red-950/30 hover:bg-red-900/40 text-red-400 font-medium transition-colors"
+                  className="px-3 py-1.5 rounded-xl bg-rose-950/30 border border-rose-800/40 hover:bg-rose-900/30 text-rose-300 text-xs font-medium transition-colors flex items-center gap-1.5"
                 >
-                  Delete
+                  <Trash2 className="w-3 h-3" />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>
@@ -225,17 +243,17 @@ export default function BuyerReviewsPage() {
         </div>
       )}
 
-      {/* Edit Review Modal */}
+      {/* Edit Modal */}
       {editingReview && (
-        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
-          <div className="max-w-md w-full rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h2 className="font-bold text-white text-base">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-md w-full rounded-2xl bg-[#211815] border border-[#3A2930] p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#3A2930]">
+              <h2 className="font-serif font-medium text-[#F7EFE2] text-base">
                 Edit Review: {editingReview.productTitle}
               </h2>
               <button
                 onClick={() => setEditingReview(null)}
-                className="text-slate-400 hover:text-white text-sm"
+                className="text-[#BBAE9F] hover:text-[#F7EFE2] text-sm"
               >
                 ✕
               </button>
@@ -243,7 +261,7 @@ export default function BuyerReviewsPage() {
 
             <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Rating</label>
+                <label className="block text-[#BBAE9F] font-medium mb-1.5">Rating</label>
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -251,59 +269,59 @@ export default function BuyerReviewsPage() {
                       type="button"
                       onClick={() => setEditRating(star)}
                       className={`text-xl p-1 transition-transform ${
-                        star <= editRating ? "scale-110" : "opacity-40"
+                        star <= editRating ? "text-amber-400 scale-110" : "text-[#3A2930] hover:text-amber-300"
                       }`}
                     >
-                      ⭐
+                      ★
                     </button>
                   ))}
-                  <span className="ml-2 font-bold text-amber-400">{editRating} Stars</span>
+                  <span className="text-xs text-[#BBAE9F] font-mono ml-2">
+                    {editRating} / 5
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Review Headline</label>
+                <label className="block text-[#BBAE9F] font-medium mb-1.5">Review Headline</label>
                 <input
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                  required
-                  maxLength={100}
+                  className="w-full px-3 py-2 rounded-xl bg-[#120A12] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5]"
+                  placeholder="e.g. Exceptional quality and clean organization"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-medium mb-1">Your Detailed Feedback</label>
+                <label className="block text-[#BBAE9F] font-medium mb-1.5">Written Feedback</label>
                 <textarea
                   rows={4}
+                  required
                   value={editComment}
                   onChange={(e) => setEditComment(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                  required
-                  minLength={5}
-                  maxLength={2000}
-                ></textarea>
+                  className="w-full px-3 py-2 rounded-xl bg-[#120A12] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5]"
+                  placeholder="Detailed thoughts on design fidelity, code clarity, documentation..."
+                />
               </div>
 
               {editStatus && (
-                <div className="p-2.5 rounded-lg bg-slate-800 text-xs font-medium">
+                <div className="p-3 rounded-xl bg-[#120A12] border border-[#3A2930] text-xs">
                   {editStatus}
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingReview(null)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium"
+                  className="px-4 py-2 rounded-xl bg-[#120A12] text-[#BBAE9F] hover:text-[#F7EFE2] border border-[#3A2930]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-[#F43F5E] hover:bg-[#F43F5E]/90 text-white font-medium disabled:opacity-50"
                 >
                   {savingEdit ? "Saving..." : "Save Changes"}
                 </button>

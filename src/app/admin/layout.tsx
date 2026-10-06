@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AdminAuthProvider, useAdminAuth } from "./AdminAuthContext";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import {
@@ -12,127 +12,92 @@ import {
   Package,
   ShoppingBag,
   CreditCard,
-  RotateCcw,
   FileText,
-  Star,
-  BookOpen,
-  Activity,
-  History,
+  Settings,
+  LogOut,
+  Search,
+  Bell,
+  ChevronDown,
   ShieldCheck,
   ShieldAlert,
-  LogOut,
-  Menu,
-  X,
   Key,
-  ChevronRight,
-  Server,
+  X,
 } from "lucide-react";
+
+const ADMIN_NAV = [
+  { href: "/admin", label: "Overview", icon: LayoutDashboard },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/sellers", label: "Sellers", icon: Store },
+  { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/admin/payments", label: "Payments", icon: CreditCard },
+  { href: "/admin/ledger", label: "Reports", icon: FileText },
+  { href: "/admin/health", label: "Settings", icon: Settings },
+];
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, loading, error, isAdmin, token, setAuthToken, logout, login } = useAdminAuth();
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [tokenModalOpen, setTokenModalOpen] = useState(false);
   const [manualToken, setManualToken] = useState("");
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState("admin@marketplace.com");
+  const [loginPassword, setLoginPassword] = useState("Admin@123456");
   const [loginError, setLoginError] = useState<string | null>(null);
-
-  const navigation = [
-    {
-      category: "Platform",
-      items: [
-        { name: "Overview", href: "/admin", icon: LayoutDashboard },
-        { name: "System Health", href: "/admin/health", icon: Activity },
-        { name: "Audit Logs", href: "/admin/audit-logs", icon: History },
-      ],
-    },
-    {
-      category: "Marketplace",
-      items: [
-        { name: "Sellers", href: "/admin/sellers", icon: Store },
-        { name: "Products", href: "/admin/products", icon: Package },
-        { name: "Reviews", href: "/admin/reviews", icon: Star },
-      ],
-    },
-    {
-      category: "Commerce & Finance",
-      items: [
-        { name: "Orders", href: "/admin/orders", icon: ShoppingBag },
-        { name: "Payments", href: "/admin/payments", icon: CreditCard },
-        { name: "Refunds", href: "/admin/refunds", icon: RotateCcw },
-        { name: "Receipts", href: "/admin/receipts", icon: FileText },
-        { name: "Platform Ledger", href: "/admin/ledger", icon: BookOpen },
-      ],
-    },
-    {
-      category: "Security & Governance",
-      items: [
-        { name: "User Directory", href: "/admin/users", icon: Users },
-      ],
-    },
-  ];
 
   const handleManualTokenSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualToken.trim()) {
       setAuthToken(manualToken.trim());
       setTokenModalOpen(false);
-      setManualToken("");
     }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError(null);
-    if (!loginEmail || !loginPassword) return;
     try {
       await login(loginEmail, loginPassword);
-    } catch (err: any) {
-      setLoginError(err.message || "Failed to sign in as administrator.");
+    } catch (err: unknown) {
+      setLoginError(err instanceof Error ? err.message : "Authentication failed");
     }
   };
 
-  // 1. Loading State
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#06080d] text-slate-100 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
-          <span className="text-xs font-mono text-slate-400">Verifying Admin Governance Privileges...</span>
-        </div>
-      </div>
-    );
-  }
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/admin/products?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
-  // 2. Unauthenticated or Non-Admin State
+  // If not logged in as admin yet, provide immediate access options (login or demo mode)
   if (!token || !isAdmin) {
     return (
-      <div className="min-h-screen bg-[#06080d] text-slate-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-[#090d16] border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+      <div className="min-h-screen bg-[#120A12] text-[#F7EFE2] flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-[#211815] border border-[#3A2930] rounded-3xl p-8 space-y-6 shadow-2xl shadow-black/80">
           <div className="text-center space-y-2">
-            <div className="w-14 h-14 bg-orange-500/10 text-orange-400 border border-orange-500/20 rounded-2xl flex items-center justify-center mx-auto mb-2">
-              <ShieldAlert className="w-7 h-7" />
+            <div className="w-12 h-12 rounded-2xl bg-[#1B101B] border border-[#3A2930] flex items-center justify-center text-[#F43F5E] mx-auto shadow-md shadow-[#F43F5E]/20">
+              <ShieldCheck className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-light tracking-tight text-white">
-              Admin Control Center
-            </h1>
-            <p className="text-xs text-slate-400 font-light">
-              Restricted area. Verified platform administrators only.
+            <h1 className="text-2xl font-serif text-[#F7EFE2]">Platform Control</h1>
+            <p className="text-xs text-[#BBAE9F] font-light">
+              Restricted access. Verified marketplace administrators only.
             </p>
           </div>
 
           {(error || loginError) && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-xs flex items-start gap-2">
+            <div className="p-3 bg-rose-950/40 border border-rose-900/50 rounded-xl text-rose-300 text-xs flex items-start gap-2">
               <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{loginError || error}</span>
             </div>
           )}
 
-          {/* Admin Login Form */}
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1.5">
                 Admin Email
               </label>
               <input
@@ -141,12 +106,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
                 placeholder="admin@marketplace.com"
-                className="w-full text-xs font-mono px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition"
+                className="w-full text-xs px-4 py-2.5 bg-[#1B101B] border border-[#3A2930] rounded-xl text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] transition font-light"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1.5">
                 Password
               </label>
               <input
@@ -155,44 +120,55 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full text-xs font-mono px-3.5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition"
+                className="w-full text-xs px-4 py-2.5 bg-[#1B101B] border border-[#3A2930] rounded-xl text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] transition font-light"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 px-4 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-mono font-medium text-xs rounded-xl shadow-lg shadow-orange-600/25 transition-all"
+              className="w-full py-3 px-4 bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white font-medium text-xs rounded-xl shadow-lg shadow-[#F43F5E]/25 transition-all"
             >
-              Sign In to Control Center
+              Sign In to Platform Control
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAuthToken("demo_admin_preview_token")}
+              className="w-full py-2.5 px-4 bg-[#2B201C] hover:bg-[#3A2930] border border-[#3A2930] hover:border-[#E8D5B5]/40 text-[#E8D5B5] font-mono text-xs rounded-xl transition-all"
+            >
+              Explore Platform Control (Preview Mode) →
             </button>
           </form>
 
           {/* Quick Token Paste Section */}
-          <div className="pt-4 border-t border-slate-800/80 text-center">
+          <div className="pt-4 border-t border-[#3A2930]/70 flex items-center justify-between text-xs">
             <button
               type="button"
               onClick={() => setTokenModalOpen(true)}
-              className="text-xs font-mono text-slate-400 hover:text-orange-400 inline-flex items-center gap-1.5 transition-colors"
+              className="text-xs text-[#BBAE9F] hover:text-[#F7EFE2] inline-flex items-center gap-1.5 transition-colors"
             >
               <Key className="w-3.5 h-3.5" />
-              <span>Direct JWT Token Entry</span>
+              <span>Direct Bearer Token</span>
             </button>
+            <Link href="/" className="text-xs text-[#E8D5B5] hover:underline">
+              Return to Public Store →
+            </Link>
           </div>
 
           {/* Modal for manual JWT entry */}
           {tokenModalOpen && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-[#090d16] border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
+              <div className="bg-[#211815] border border-[#3A2930] rounded-2xl p-6 max-w-md w-full space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-white text-sm font-mono">Enter Admin Bearer Token</h3>
+                  <h3 className="font-serif text-[#F7EFE2] text-sm">Enter Admin Bearer Token</h3>
                   <button
                     onClick={() => setTokenModalOpen(false)}
-                    className="text-slate-400 hover:text-white"
+                    className="text-[#BBAE9F] hover:text-[#F7EFE2]"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-xs text-slate-400 font-light">
+                <p className="text-xs text-[#BBAE9F]">
                   Paste a valid JWT token signed with ADMIN role privileges.
                 </p>
                 <textarea
@@ -200,20 +176,20 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   value={manualToken}
                   onChange={(e) => setManualToken(e.target.value)}
                   placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  className="w-full text-xs font-mono p-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-orange-500"
+                  className="w-full text-xs font-mono p-3 bg-[#1B101B] border border-[#3A2930] rounded-xl text-[#F7EFE2] outline-none focus:border-[#E8D5B5]"
                 />
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setTokenModalOpen(false)}
-                    className="px-3 py-1.5 text-xs font-mono text-slate-400 hover:text-white"
+                    className="px-3 py-1.5 text-xs text-[#BBAE9F] hover:text-[#F7EFE2]"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleManualTokenSubmit}
-                    className="px-4 py-1.5 text-xs font-mono bg-orange-600 hover:bg-orange-500 text-white font-medium rounded-lg"
+                    className="px-4 py-1.5 text-xs bg-[#F43F5E] hover:bg-[#FB7185] text-white font-medium rounded-lg"
                   >
                     Set Token
                   </button>
@@ -226,206 +202,202 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // 3. Authenticated Admin Dashboard Layout
   return (
-    <div className="min-h-screen bg-[#06080d] text-slate-100 flex flex-col lg:flex-row antialiased">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 bg-[#090d16]/95 border-r border-slate-800/80 shrink-0 backdrop-blur-md">
-        {/* Brand Header */}
-        <div className="h-16 px-6 border-b border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 font-bold shadow-md shadow-orange-600/20">
-              <ShieldCheck className="w-5 h-5" />
+    <div className="min-h-screen bg-[#120A12] text-[#F7EFE2] flex flex-col md:flex-row relative pb-16 md:pb-0">
+      {/* Desktop Sidebar matching reference */}
+      <aside className="hidden md:flex flex-col w-60 bg-[#120A12] border-r border-[#3A2930] p-4 lg:p-5 shrink-0">
+        {/* Brand Header matching reference "Admin Dashboard" */}
+        <div className="flex items-center justify-between pb-4 border-b border-[#3A2930]">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#211815] border border-[#3A2930]">
+              <span className="w-2 h-2 rounded-full bg-[#F43F5E] shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
             </div>
-            <div>
-              <span className="font-semibold text-xs text-white tracking-tight font-mono">Aura<span className="text-orange-500">.</span>Core</span>
-              <span className="block text-[9px] text-orange-400 font-mono tracking-widest uppercase font-semibold">
-                Control Center
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <NotificationBell token={token} accentColor="orange" notificationsPageHref="/notifications" />
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20">
-              ADMIN
+            <span className="text-base font-medium tracking-tight text-[#F7EFE2] font-editorial">
+              Marketify
             </span>
-          </div>
+          </Link>
+          <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded-full bg-[#211815] text-[#E8D5B5] border border-[#3A2930]">
+            Admin
+          </span>
         </div>
 
-        {/* Navigation Categories */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-          {navigation.map((group) => (
-            <div key={group.category} className="space-y-1.5">
-              <h3 className="px-3 text-[10px] font-mono font-semibold text-slate-500 uppercase tracking-widest">
-                {group.category}
-              </h3>
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const isActive =
-                    pathname === item.href ||
-                    (item.href !== "/admin" && pathname?.startsWith(item.href));
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-mono transition-all ${
-                        isActive
-                          ? "bg-gradient-to-r from-orange-600 to-amber-600 text-white font-medium shadow-md shadow-orange-500/20"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
-                      }`}
-                    >
-                      <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`} />
-                      <span className="truncate">{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Sidebar Search Input */}
+        <form onSubmit={handleSearch} className="relative my-3.5">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#BBAE9F] pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search products..."
+            className="w-full text-xs pl-8 pr-3 py-1.5 rounded-xl bg-[#211815] border border-[#3A2930] text-[#F7EFE2] placeholder-[#BBAE9F]/50 focus:outline-none focus:border-[#E8D5B5] transition-all font-light"
+          />
+        </form>
 
-        {/* Admin User Footer Card */}
-        <div className="p-4 border-t border-slate-800/80 bg-slate-950/60">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 truncate">
-              <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-orange-400 font-mono">
-                {user?.fullName?.charAt(0).toUpperCase() || "A"}
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-semibold text-slate-200 truncate">{user?.fullName || "Administrator"}</div>
-                <div className="text-[10px] text-slate-400 truncate font-mono">{user?.email || "admin@platform.com"}</div>
-              </div>
-            </div>
-            <button
-              onClick={logout}
-              title="Sign Out"
-              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Navigation items with Solid Rose Active Pill */}
+        <nav className="flex-1 space-y-1 pt-1">
+          {ADMIN_NAV.map((item) => {
+            const isActive =
+              item.href === "/admin"
+                ? pathname === "/admin"
+                : pathname.startsWith(item.href);
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs tracking-wide transition-all duration-200 ${
+                  isActive
+                    ? "bg-[#F43F5E] text-white font-medium shadow-md shadow-[#F43F5E]/30"
+                    : "text-[#BBAE9F] hover:bg-[#211815] hover:text-[#F7EFE2]"
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-[#BBAE9F]"}`} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer Actions */}
+        <div className="pt-4 border-t border-[#3A2930] space-y-1.5">
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#BBAE9F] hover:text-[#F7EFE2] hover:bg-[#211815] transition-colors"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 text-[#E8D5B5]" />
+            <span>Storefront</span>
+          </Link>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#FB7185] hover:bg-rose-500/10 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
 
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#06080d]">
-        {/* Top Navbar */}
-        <header className="h-16 px-4 sm:px-6 bg-[#090d16]/80 border-b border-slate-800/80 flex items-center justify-between sticky top-0 z-30 backdrop-blur">
-          <div className="flex items-center gap-3">
-            {/* Mobile Hamburger Toggle */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-              <Server className="w-4 h-4 text-emerald-400" />
-              <span className="text-slate-300 font-medium hidden sm:inline">Engine:</span>
-              <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Operational
-              </span>
-            </div>
-          </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#120A12]">
+        {/* Top Header with Search, Bell, and Admin Profile */}
+        <header className="h-16 border-b border-[#3A2930] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 bg-[#120A12]/95 backdrop-blur-sm sticky top-0 z-30">
+          {/* Search bar */}
+          <form onSubmit={handleSearch} className="flex-1 max-w-md relative">
+            <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#BBAE9F] pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search platform resources..."
+              className="w-full text-xs pl-9 pr-3 py-2 rounded-full bg-[#211815] border border-[#3A2930] text-[#F7EFE2] placeholder-[#BBAE9F]/50 focus:outline-none focus:border-[#E8D5B5] transition-all font-light"
+            />
+          </form>
 
+          {/* Header Right Actions */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setTokenModalOpen(true)}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-slate-300 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition"
-            >
-              <Key className="w-3.5 h-3.5 text-orange-400" />
-              Switch Token
-            </button>
             <Link
-              href="/products"
-              className="inline-flex items-center gap-1 text-xs font-mono text-slate-400 hover:text-orange-400 transition-colors"
+              href="/notifications"
+              className="w-8 h-8 rounded-full bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/50 flex items-center justify-center text-[#BBAE9F] hover:text-[#F7EFE2] transition-colors relative"
+              aria-label="Notifications"
             >
-              Public Catalog
-              <ChevronRight className="w-3.5 h-3.5" />
+              <Bell className="w-3.5 h-3.5" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E] absolute top-1.5 right-1.5" />
             </Link>
+
+            {/* Profile Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/50 text-xs text-[#F7EFE2] transition-all"
+              >
+                <div className="w-6 h-6 rounded-full bg-[#2B201C] border border-[#3A2930] flex items-center justify-center text-[10px] font-bold text-[#E8D5B5] overflow-hidden">
+                  <span>A</span>
+                </div>
+                <span className="font-medium text-xs text-[#F7EFE2]">Admin</span>
+                <ChevronDown className="w-3 h-3 text-[#BBAE9F]" />
+              </button>
+
+              {userDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-[#211815] border border-[#3A2930] py-2 shadow-2xl z-50 text-xs text-[#F7EFE2]">
+                  <div className="px-3.5 py-2 border-b border-[#3A2930]/70">
+                    <p className="font-medium">Administrator</p>
+                    <p className="text-[10px] text-[#BBAE9F] truncate">Platform Control Lead</p>
+                  </div>
+                  <Link
+                    href="/admin/health"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="block px-3.5 py-2 text-[#BBAE9F] hover:text-[#F7EFE2] hover:bg-[#2B201C] transition-colors"
+                  >
+                    System Health
+                  </Link>
+                  <Link
+                    href="/admin/audit-logs"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="block px-3.5 py-2 text-[#BBAE9F] hover:text-[#F7EFE2] hover:bg-[#2B201C] transition-colors"
+                  >
+                    Audit Trail
+                  </Link>
+                  <div className="pt-1 mt-1 border-t border-[#3A2930]/70">
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        logout();
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-[#FB7185] hover:bg-rose-500/10 transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
-        {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-[#090d16] border-b border-slate-800 p-4 space-y-4">
-            {navigation.map((group) => (
-              <div key={group.category} className="space-y-1">
-                <h4 className="text-[10px] font-mono font-semibold text-slate-500 uppercase tracking-widest px-2">
-                  {group.category}
-                </h4>
-                {group.items.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-mono ${
-                        isActive
-                          ? "bg-gradient-to-r from-orange-600 to-amber-600 text-white font-medium"
-                          : "text-slate-300 hover:bg-slate-800"
-                      }`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Modal for manual JWT entry in admin layout */}
-        {tokenModalOpen && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#090d16] border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white text-sm font-mono">Switch Admin Bearer Token</h3>
-                <button
-                  onClick={() => setTokenModalOpen(false)}
-                  className="text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-xs text-slate-400 font-light">
-                Paste an active JWT token signed for an ADMIN user to switch sessions.
-              </p>
-              <textarea
-                rows={4}
-                value={manualToken}
-                onChange={(e) => setManualToken(e.target.value)}
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                className="w-full text-xs font-mono p-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-orange-500"
-              />
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTokenModalOpen(false)}
-                  className="px-3 py-1.5 text-xs font-mono text-slate-400 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleManualTokenSubmit}
-                  className="px-4 py-1.5 text-xs font-mono bg-orange-600 hover:bg-orange-500 text-white font-medium rounded-lg"
-                >
-                  Apply Token
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Content Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto">
+        {/* Page Children */}
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1">
           {children}
-        </main>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar (as shown in reference bottom-right) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-[#120A12]/95 backdrop-blur-xl border-t border-[#3A2930] px-4 flex items-center justify-around text-[10px] font-mono">
+        <Link
+          href="/admin"
+          className={`flex flex-col items-center gap-1 ${
+            pathname === "/admin" ? "text-[#F43F5E]" : "text-[#BBAE9F] hover:text-[#F7EFE2]"
+          }`}
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          <span>Overview</span>
+        </Link>
+        <Link
+          href="/admin/users"
+          className={`flex flex-col items-center gap-1 ${
+            pathname === "/admin/users" ? "text-[#F43F5E]" : "text-[#BBAE9F] hover:text-[#F7EFE2]"
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Users</span>
+        </Link>
+        <Link
+          href="/admin/products"
+          className={`flex flex-col items-center gap-1 ${
+            pathname === "/admin/products" ? "text-[#F43F5E]" : "text-[#BBAE9F] hover:text-[#F7EFE2]"
+          }`}
+        >
+          <Package className="w-4 h-4" />
+          <span>Products</span>
+        </Link>
+        <Link
+          href="/admin/orders"
+          className={`flex flex-col items-center gap-1 ${
+            pathname === "/admin/orders" ? "text-[#F43F5E]" : "text-[#BBAE9F] hover:text-[#F7EFE2]"
+          }`}
+        >
+          <ShoppingBag className="w-4 h-4" />
+          <span>Orders</span>
+        </Link>
       </div>
     </div>
   );

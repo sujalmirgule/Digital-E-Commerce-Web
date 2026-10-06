@@ -47,7 +47,7 @@ export default function SellerProductsPage() {
   }, [loadProducts]);
 
   const handleSubmitForReview = async (productId: string) => {
-    if (!confirm("Submit this product to marketplace administrators for review?")) return;
+    if (!confirm("Submit this product to marketplace curation for verification?")) return;
     setSubmittingId(productId);
     try {
       const res = await fetchWithAuth(`/api/v1/seller/products/${productId}/submit`, {
@@ -55,7 +55,7 @@ export default function SellerProductsPage() {
       });
       const json = await res.json();
       if (res.ok) {
-        alert("Product submitted for review successfully!");
+        alert("Product submitted for moderation review successfully!");
         loadProducts();
       } else {
         alert(`Submission failed: ${json.error?.message || "Ensure files and details are complete."}`);
@@ -68,27 +68,29 @@ export default function SellerProductsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-velvet-border/80">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Product Catalog Management</h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Create, update, inspect moderation status, and track sales for your digital items.
+          <h1 className="text-3xl font-serif font-normal text-velvet-cream-soft tracking-tight">
+            Creator Product Inventory
+          </h1>
+          <p className="text-velvet-cream-muted text-xs mt-1">
+            Build, publish, inspect curation status, and track sales performance for your digital products.
           </p>
         </div>
 
         <Link
           href="/seller/products/new"
-          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+          className="px-5 py-2.5 rounded-full bg-velvet-rose hover:bg-velvet-rose-soft text-white text-xs font-semibold shadow-md shadow-velvet-rose/20 transition-all flex items-center gap-1.5 self-start sm:self-auto"
         >
-          <span>➕</span> New Product
+          <span>+</span> Add Product
         </Link>
       </div>
 
       {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-lg text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 bg-velvet-mocha border border-velvet-border/80 p-1 rounded-xl text-xs">
           {[
             { label: "All", value: "" },
             { label: "Published", value: "PUBLISHED" },
@@ -99,10 +101,10 @@ export default function SellerProductsPage() {
             <button
               key={tab.value}
               onClick={() => setStatusFilter(tab.value)}
-              className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all text-xs ${
                 statusFilter === tab.value
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-velvet-rose text-white shadow-sm"
+                  : "text-velvet-cream-muted hover:text-velvet-cream-soft hover:bg-velvet-plum/60"
               }`}
             >
               {tab.label}
@@ -110,31 +112,31 @@ export default function SellerProductsPage() {
           ))}
         </div>
 
-        <div className="w-full sm:w-64">
+        <div className="w-full sm:w-72">
           <input
             type="text"
             placeholder="Search by title or slug..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            className="w-full px-4 py-2 text-xs rounded-xl bg-velvet-mocha border border-velvet-border text-velvet-cream placeholder-velvet-cream-muted/50 focus:outline-none focus:border-velvet-cream/60 transition-colors"
           />
         </div>
       </div>
 
       {/* Loading State */}
       {loading && (
-        <div className="space-y-3">
+        <div className="space-y-3.5 animate-pulse">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-slate-900 border border-slate-800 rounded-xl p-4 animate-pulse"></div>
+            <div key={i} className="h-28 bg-velvet-mocha border border-velvet-border/80 rounded-2xl p-4"></div>
           ))}
         </div>
       )}
 
       {/* Error State */}
       {error && (
-        <div className="p-4 rounded-xl bg-red-950/40 border border-red-800/50 text-red-200 text-sm">
+        <div className="p-4 rounded-xl bg-velvet-mocha border border-rose-900/50 text-rose-200 text-sm flex items-center justify-between">
           <span>⚠️ {error}</span>
-          <button onClick={loadProducts} className="ml-3 underline hover:text-white">
+          <button onClick={loadProducts} className="px-3 py-1 bg-velvet-rose text-white rounded-lg text-xs font-medium">
             Retry
           </button>
         </div>
@@ -142,62 +144,64 @@ export default function SellerProductsPage() {
 
       {/* Empty State */}
       {!loading && !error && products.length === 0 && (
-        <div className="py-16 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl p-8">
-          <div className="text-4xl mb-3">📦</div>
-          <h3 className="font-bold text-base text-white">No products found</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 mb-5">
+        <div className="py-20 text-center bg-velvet-mocha/40 border border-velvet-border/80 rounded-3xl p-8 max-w-lg mx-auto">
+          <div className="w-12 h-12 rounded-full bg-velvet-plum border border-velvet-border flex items-center justify-center text-xl mx-auto mb-3">
+            📦
+          </div>
+          <h3 className="font-serif text-base text-velvet-cream-soft">No products found</h3>
+          <p className="text-xs text-velvet-cream-muted max-w-sm mx-auto mt-1 mb-6">
             {statusFilter || search
-              ? "No products matched your search or status filter."
-              : "You haven't created any products yet. Launch your first digital item now."}
+              ? "No items matched your search query or curation filter."
+              : "You haven't listed any digital products yet. Start selling to collectors."}
           </p>
           <Link
             href="/seller/products/new"
-            className="inline-flex px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+            className="inline-flex px-5 py-2.5 rounded-full bg-velvet-rose hover:bg-velvet-rose-soft text-white text-xs font-semibold shadow-md transition-colors"
           >
-            Create New Product
+            Create First Product →
           </Link>
         </div>
       )}
 
       {/* Products Table */}
       {!loading && products.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {products.map((prod) => (
             <div
               key={prod.id}
-              className="p-5 rounded-xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-700 transition-colors"
+              className="p-5 rounded-2xl bg-velvet-mocha border border-velvet-border/80 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-velvet-cream/40 transition-all shadow-sm"
             >
               <div className="space-y-1.5 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-bold text-white text-sm">{prod.title}</span>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="font-serif font-medium text-velvet-cream-soft text-base">{prod.title}</span>
                   <span
-                    className={`px-2 py-0.5 text-[10px] font-semibold uppercase rounded ${
+                    className={`px-2 py-0.5 text-[10px] font-semibold uppercase rounded-full tracking-wider ${
                       prod.status === "PUBLISHED"
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
                         : prod.status === "PENDING_REVIEW"
-                        ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        ? "bg-amber-500/15 text-amber-400 border border-amber-500/20"
                         : prod.status === "REJECTED"
-                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                        : "bg-slate-700/60 text-slate-300"
+                        ? "bg-rose-500/15 text-rose-400 border border-rose-500/20"
+                        : "bg-velvet-plum text-velvet-cream-muted border border-velvet-border"
                     }`}
                   >
                     {prod.status}
                   </span>
-                  <span className="text-[11px] text-slate-500 font-mono">v{prod.version}</span>
+                  <span className="text-[11px] text-velvet-cream-muted/70 font-mono">v{prod.version}</span>
                 </div>
 
-                <p className="text-xs text-slate-400 line-clamp-1">{prod.shortDescription}</p>
+                <p className="text-xs text-velvet-cream-muted line-clamp-1">{prod.shortDescription}</p>
 
                 {prod.rejectionReason && (
-                  <div className="p-2 rounded bg-red-950/30 border border-red-800/40 text-[11px] text-red-300">
+                  <div className="p-2.5 rounded-xl bg-rose-950/30 border border-rose-800/40 text-[11px] text-rose-300">
                     <strong>Moderation Feedback:</strong> {prod.rejectionReason}
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-400 pt-1">
-                  <span>Price: <strong className="text-slate-200">₹{(prod.pricePaise / 100).toFixed(2)}</strong></span>
-                  <span>Sales: <strong className="text-slate-200">{prod.salesCount}</strong></span>
-                  <span>Files: <strong className="text-slate-200">{prod.filesCount}</strong></span>
+                <div className="flex flex-wrap items-center gap-4 text-[11px] text-velvet-cream-muted pt-1">
+                  <span>Price: <strong className="text-velvet-cream font-mono">₹{(prod.pricePaise / 100).toFixed(2)}</strong></span>
+                  <span>Sales: <strong className="text-velvet-cream-soft">{prod.salesCount}</strong></span>
+                  <span>Files: <strong className="text-velvet-cream-soft">{prod.filesCount}</strong></span>
                   {prod.ratingAvg > 0 && (
                     <span className="text-amber-400">★ {prod.ratingAvg} ({prod.reviewsCount})</span>
                   )}
@@ -205,10 +209,10 @@ export default function SellerProductsPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800 shrink-0">
+              <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-velvet-border/60 shrink-0">
                 <Link
                   href={`/seller/products/${prod.id}`}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors"
+                  className="px-3.5 py-1.5 rounded-xl bg-velvet-plum hover:bg-velvet-mocha-elevated text-velvet-cream border border-velvet-border hover:border-velvet-cream/40 text-xs font-medium transition-all"
                 >
                   Manage / Edit
                 </Link>
@@ -217,7 +221,7 @@ export default function SellerProductsPage() {
                   <button
                     onClick={() => handleSubmitForReview(prod.id)}
                     disabled={submittingId === prod.id}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors disabled:opacity-50"
+                    className="px-4 py-1.5 rounded-xl bg-velvet-rose hover:bg-velvet-rose-soft text-white text-xs font-medium transition-colors disabled:opacity-50 shadow-sm"
                   >
                     {submittingId === prod.id ? "Submitting..." : "Submit for Review"}
                   </button>

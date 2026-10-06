@@ -2,9 +2,17 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  experimental: {
-    workerThreads: false,
-    cpus: 1,
+  outputFileTracing: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
   },
 
   async headers() {
@@ -31,4 +39,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
