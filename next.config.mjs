@@ -6,6 +6,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    cpus: 1,
+    workerThreads: false,
+  },
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",

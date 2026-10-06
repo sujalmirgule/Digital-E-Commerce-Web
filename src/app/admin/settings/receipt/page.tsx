@@ -1,23 +1,25 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "../../AdminAuthContext";
 import {
-  Receipt,
-  ShieldCheck,
-  ShieldAlert,
   ArrowLeft,
   CheckCircle2,
   RefreshCw,
   Save,
   Palette,
   Eye,
-  Building,
   Mail,
   Phone,
-  Globe,
+  Building,
+  Upload,
+  Sliders,
+  AlertCircle,
   FileText,
+  Image as ImageIcon,
+  Stamp,
+  Check,
 } from "lucide-react";
 
 interface ReceiptTemplateConfig {
@@ -26,6 +28,7 @@ interface ReceiptTemplateConfig {
   version: number;
   platformName: string;
   receiptTitle: string;
+  logoKey?: string | null;
   primaryColor: string;
   secondaryColor: string;
   textColor: string;
@@ -34,6 +37,7 @@ interface ReceiptTemplateConfig {
   headerText: string;
   footerVisible: boolean;
   footerText: string;
+  backgroundImageKey?: string | null;
   backgroundOpacity: number;
   watermarkText: string;
   watermarkOpacity: number;
@@ -49,8 +53,16 @@ export default function AdminReceiptTemplateSettingsPage() {
   const [template, setTemplate] = useState<ReceiptTemplateConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBg, setUploadingBg] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Local object URLs for live preview of uploaded files
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bgInputRef = useRef<HTMLInputElement>(null);
 
   const fetchTemplate = async () => {
     if (!token) return;
@@ -64,9 +76,16 @@ export default function AdminReceiptTemplateSettingsPage() {
       if (!res.ok || !data.success) {
         throw new Error(data.error?.message || "Failed to load receipt template");
       }
-      setTemplate(data.data.template || data.data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load template");
+      const t = data.data.template || data.data;
+      setTemplate({
+        ...t,
+        primaryColor: t.primaryColor || "#3B261C",
+        secondaryColor: t.secondaryColor || "#684332",
+        textColor: t.textColor || "#151311",
+        backgroundColor: t.backgroundColor || "#FFFFFF",
+      });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load template");
     } finally {
       setLoading(false);
     }
@@ -78,8 +97,58 @@ export default function AdminReceiptTemplateSettingsPage() {
     }
   }, [token]);
 
-  const handleChange = (field: keyof ReceiptTemplateConfig, value: any) => {
+  const handleChange = (field: keyof ReceiptTemplateConfig, value: unknown) => {
     setTemplate((prev) => (prev ? { ...prev, [field]: value } : null));
+  };
+
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "logo" | "background"
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file || !token) return;
+
+    if (type === "logo") {
+      setUploadingLogo(true);
+      setLogoPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setUploadingBg(true);
+    }
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", type);
+
+      const res = await fetch("/api/v1/admin/receipts/template/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to upload asset");
+      }
+
+      const storageKey = data.data.storageKey;
+      if (type === "logo") {
+        handleChange("logoKey", storageKey);
+        setSuccess("Branding logo uploaded successfully and attached to template.");
+      } else {
+        handleChange("backgroundImageKey", storageKey);
+        setSuccess("Background image asset uploaded successfully.");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to upload file");
+    } finally {
+      if (type === "logo") setUploadingLogo(false);
+      else setUploadingBg(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -94,6 +163,7 @@ export default function AdminReceiptTemplateSettingsPage() {
       const payload = {
         platformName: template.platformName,
         receiptTitle: template.receiptTitle,
+        logoKey: template.logoKey || null,
         primaryColor: template.primaryColor,
         secondaryColor: template.secondaryColor,
         textColor: template.textColor,
@@ -102,6 +172,7 @@ export default function AdminReceiptTemplateSettingsPage() {
         headerText: template.headerText,
         footerVisible: template.footerVisible,
         footerText: template.footerText,
+        backgroundImageKey: template.backgroundImageKey || null,
         backgroundOpacity: Number(template.backgroundOpacity),
         watermarkText: template.watermarkText,
         watermarkOpacity: Number(template.watermarkOpacity),
@@ -122,14 +193,13 @@ export default function AdminReceiptTemplateSettingsPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to save receipt template");
+        throw new Error(data.error?.message || "Failed to save template changes");
       }
 
-      const updated = data.data.template || data.data;
-      setTemplate(updated);
-      setSuccess(`Receipt template updated successfully! Active version is now v${updated.version}. Historical receipts remain preserved under their respective issuance versions.`);
-    } catch (err: any) {
-      setError(err.message || "Failed to save receipt template");
+      setSuccess(`Receipt template updated successfully! New version: v${data.data.version}`);
+      setTemplate(data.data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save template");
     } finally {
       setSaving(false);
     }
@@ -137,124 +207,162 @@ export default function AdminReceiptTemplateSettingsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 max-w-6xl mx-auto flex flex-col items-center justify-center min-h-[50vh] text-[#BBAE9F]">
-        <RefreshCw className="w-8 h-8 animate-spin text-[#F43F5E] mb-3" />
-        <p className="text-xs font-mono">Retrieving active receipt template configuration...</p>
+      <div className="py-24 text-center text-[#8A6048]">
+        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-[#A94432]" />
+        <p className="text-xs font-semibold">Loading receipt template customizer...</p>
       </div>
     );
   }
 
-  if (!template) return null;
+  if (!template) {
+    return (
+      <div className="p-8 text-center bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900 rounded-2xl text-rose-600 dark:text-rose-400">
+        <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+        <h3 className="font-bold text-base">Failed to Load Template</h3>
+        <p className="text-xs mt-1">{error || "Could not retrieve default receipt template configuration."}</p>
+        <button
+          onClick={fetchTemplate}
+          className="mt-4 px-4 py-2 text-xs font-semibold bg-[#3B261C] text-[#FAF7F2] rounded-xl"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <Link
-          href="/admin/settings"
-          className="inline-flex items-center gap-2 text-xs text-[#BBAE9F] hover:text-[#E8D5B5] transition mb-2"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Platform Settings
-        </Link>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6">
+      {/* Top Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#3B261C]/20 dark:border-stone-800">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/receipts"
+            className="p-2 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 text-[#3B261C] dark:text-[#FAF7F2] transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
           <div>
-            <h1 className="text-2xl font-serif text-[#F7EFE2] flex items-center gap-3">
-              <Receipt className="w-6 h-6 text-[#F43F5E]" />
-              <span>Receipt Template Management</span>
-              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-[#1B101B] text-[#E8D5B5] border border-[#3A2930]">
-                v{template.version}
-              </span>
+            <h1 className="text-2xl font-serif font-bold tracking-tight text-[#151311] dark:text-[#FAF7F2]">
+              Receipt Customizer & Live Studio
             </h1>
-            <p className="text-xs text-[#BBAE9F] mt-1">
-              Customize invoice branding, palette, typography, headers, and watermarks for all new transactions.
+            <p className="text-xs text-[#8A6048] dark:text-[#C8AA91] mt-0.5">
+              Current active template: <strong className="text-[#151311] dark:text-[#FAF7F2]">v{template.version}</strong> • Historical invoices remain immutably preserved.
             </p>
           </div>
+        </div>
 
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={fetchTemplate}
+            disabled={loading}
+            className="px-3.5 py-2 text-xs font-semibold bg-white dark:bg-stone-800 text-[#3B261C] dark:text-[#FAF7F2] border border-stone-200 dark:border-stone-700 rounded-xl transition"
+          >
+            Reset
+          </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2.5 rounded-xl text-xs font-medium bg-[#F43F5E] hover:bg-[#FB7185] text-white flex items-center gap-2 shadow-lg shadow-rose-900/25 transition shrink-0"
+            className="inline-flex items-center gap-2 px-5 py-2 text-xs font-semibold bg-[#A94432] hover:bg-[#8A3626] text-white rounded-xl shadow-sm transition disabled:opacity-50"
           >
-            <Save className="w-4 h-4" />
-            <span>{saving ? "Saving Changes..." : "Save Template Changes"}</span>
+            {saving ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            Save & Publish Version
           </button>
         </div>
       </div>
 
-      {/* Historical Integrity Guarantee Banner */}
-      <div className="p-4 bg-[#211815] border border-[#3A2930] rounded-2xl flex items-start gap-3 text-xs text-[#BBAE9F]">
-        <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <span className="text-[#F7EFE2] font-medium block">
-            Historical Financial Integrity Guaranteed
-          </span>
-          <p className="leading-relaxed">
-            When you save modifications here, the platform automatically increments the template version to{" "}
-            <span className="font-mono text-[#E8D5B5]">v{template.version + 1}</span>. Past receipts already issued to customers retain their original design and snapshot forever.
-          </p>
-        </div>
-      </div>
-
-      {/* Notifications */}
-      {success && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-800/50 rounded-xl text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{success}</span>
-        </div>
-      )}
       {error && (
-        <div className="p-4 bg-rose-950/40 border border-rose-900/50 rounded-xl text-rose-300 text-xs flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 shrink-0" />
+        <div className="p-4 bg-rose-950/40 border border-rose-900/50 rounded-2xl text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Two Column Grid: Form on Left, Live Preview on Right */}
+      {success && (
+        <div className="p-4 bg-emerald-950/40 border border-emerald-900/50 rounded-2xl text-emerald-300 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{success}</span>
+        </div>
+      )}
+
+      {/* Main Studio Grid: 7 cols Form, 5 cols Live Preview */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Settings Form (7 cols) */}
+        {/* Left Settings Form (7 cols) */}
         <form onSubmit={handleSave} className="lg:col-span-7 space-y-6">
-          {/* Brand & Titles */}
-          <div className="bg-[#211815] border border-[#3A2930] rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-mono uppercase text-[#E8D5B5] tracking-wider border-b border-[#3A2930] pb-2 flex items-center gap-2">
-              <Building className="w-4 h-4 text-[#FB7185]" /> Platform Branding
+          {/* Branding & Logo */}
+          <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 space-y-4 shadow-sm">
+            <h2 className="text-xs font-serif font-bold uppercase text-[#3B261C] dark:text-[#FAF7F2] tracking-wider border-b border-stone-200 dark:border-stone-800 pb-2 flex items-center gap-2">
+              <Building className="w-4 h-4 text-[#A94432]" /> Marketplace Branding & Logo
             </h2>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Brand / Platform Name
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Marketplace Platform Name
                 </label>
                 <input
                   type="text"
-                  required
                   value={template.platformName}
                   onChange={(e) => handleChange("platformName", e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5] transition"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2] focus:outline-none focus:border-[#3B261C]"
                 />
               </div>
+
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Receipt Document Title
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Document Heading Title
                 </label>
                 <input
                   type="text"
-                  required
                   value={template.receiptTitle}
                   onChange={(e) => handleChange("receiptTitle", e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5] transition"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2] focus:outline-none focus:border-[#3B261C]"
                 />
+              </div>
+            </div>
+
+            {/* Logo Upload */}
+            <div className="pt-2 border-t border-stone-100 dark:border-stone-800">
+              <label className="block text-[11px] font-bold text-[#8A6048] mb-1.5">
+                Marketplace Logo Asset (PNG, JPG, WebP)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  ref={logoInputRef}
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(e) => handleFileUpload(e, "logo")}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="px-3.5 py-2 text-xs font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 text-[#3B261C] dark:text-[#FAF7F2] border border-stone-300 dark:border-stone-700 rounded-xl transition inline-flex items-center gap-2"
+                >
+                  <Upload className="w-3.5 h-3.5 text-[#A94432]" />
+                  {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                </button>
+                <span className="text-[11px] text-[#8A6048]">
+                  {template.logoKey ? "✓ Custom logo active" : "Using standard typography header"}
+                </span>
               </div>
             </div>
           </div>
 
           {/* Color Palette */}
-          <div className="bg-[#211815] border border-[#3A2930] rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-mono uppercase text-[#E8D5B5] tracking-wider border-b border-[#3A2930] pb-2 flex items-center gap-2">
-              <Palette className="w-4 h-4 text-[#FB7185]" /> Visual Theme & Palette
+          <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 space-y-4 shadow-sm">
+            <h2 className="text-xs font-serif font-bold uppercase text-[#3B261C] dark:text-[#FAF7F2] tracking-wider border-b border-stone-200 dark:border-stone-800 pb-2 flex items-center gap-2">
+              <Palette className="w-4 h-4 text-[#A94432]" /> Color Architecture
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Primary Color
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Primary Accent
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -267,14 +375,14 @@ export default function AdminReceiptTemplateSettingsPage() {
                     type="text"
                     value={template.primaryColor}
                     onChange={(e) => handleChange("primaryColor", e.target.value)}
-                    className="w-full text-xs font-mono px-2 py-1.5 rounded-lg bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2]"
+                    className="w-full text-xs font-mono px-2 py-1.5 rounded-lg bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Secondary Color
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Secondary Shade
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -287,14 +395,14 @@ export default function AdminReceiptTemplateSettingsPage() {
                     type="text"
                     value={template.secondaryColor}
                     onChange={(e) => handleChange("secondaryColor", e.target.value)}
-                    className="w-full text-xs font-mono px-2 py-1.5 rounded-lg bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2]"
+                    className="w-full text-xs font-mono px-2 py-1.5 rounded-lg bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Text Color
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Body Text
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -307,14 +415,14 @@ export default function AdminReceiptTemplateSettingsPage() {
                     type="text"
                     value={template.textColor}
                     onChange={(e) => handleChange("textColor", e.target.value)}
-                    className="w-full text-xs font-mono px-2 py-1.5 rounded-lg bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2]"
+                    className="w-full text-xs font-mono px-2 py-1.5 rounded-lg bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Background Color
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Paper Background
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -327,134 +435,161 @@ export default function AdminReceiptTemplateSettingsPage() {
                     type="text"
                     value={template.backgroundColor}
                     onChange={(e) => handleChange("backgroundColor", e.target.value)}
-                    className="w-full text-xs font-mono px-2 py-1.5 rounded-lg bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2]"
+                    className="w-full text-xs font-mono px-2 py-1.5 rounded-lg bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2]"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Watermark & Background Opacity */}
-          <div className="bg-[#211815] border border-[#3A2930] rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-mono uppercase text-[#E8D5B5] tracking-wider border-b border-[#3A2930] pb-2 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-[#FB7185]" /> Watermark & Opacity
+          {/* Watermark & Background Art */}
+          <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 space-y-4 shadow-sm">
+            <h2 className="text-xs font-serif font-bold uppercase text-[#3B261C] dark:text-[#FAF7F2] tracking-wider border-b border-stone-200 dark:border-stone-800 pb-2 flex items-center gap-2">
+              <Eye className="w-4 h-4 text-[#A94432]" /> Security Watermark & Background
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Watermark Text
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Watermark Stamp Text
                 </label>
                 <input
                   type="text"
                   value={template.watermarkText}
                   onChange={(e) => handleChange("watermarkText", e.target.value)}
                   placeholder="PAID / OFFICIAL"
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5] transition"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2] focus:outline-none focus:border-[#3B261C]"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
                   Watermark Opacity ({template.watermarkOpacity})
                 </label>
                 <input
                   type="range"
                   min="0.01"
-                  max="0.5"
+                  max="0.4"
                   step="0.01"
                   value={template.watermarkOpacity}
                   onChange={(e) => handleChange("watermarkOpacity", parseFloat(e.target.value))}
-                  className="w-full mt-2 accent-[#F43F5E]"
+                  className="w-full mt-2 accent-[#A94432]"
                 />
               </div>
             </div>
+
+            {/* Background image upload */}
+            <div className="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between">
+              <div>
+                <label className="block text-[11px] font-bold text-[#8A6048]">
+                  Optional Background Pattern / Watermark Image
+                </label>
+                <span className="text-[10px] text-[#8A6048]">
+                  {template.backgroundImageKey ? "Custom background asset configured" : "No background image"}
+                </span>
+              </div>
+              <input
+                type="file"
+                ref={bgInputRef}
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => handleFileUpload(e, "background")}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => bgInputRef.current?.click()}
+                disabled={uploadingBg}
+                className="px-3.5 py-1.5 text-xs font-semibold bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 text-[#3B261C] dark:text-[#FAF7F2] border border-stone-300 dark:border-stone-700 rounded-xl transition"
+              >
+                {uploadingBg ? "Uploading..." : "Upload Pattern"}
+              </button>
+            </div>
           </div>
 
-          {/* Header & Footer Text */}
-          <div className="bg-[#211815] border border-[#3A2930] rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-mono uppercase text-[#E8D5B5] tracking-wider border-b border-[#3A2930] pb-2 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-[#FB7185]" /> Header & Footer Copy
+          {/* Header & Footer Copy */}
+          <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 space-y-4 shadow-sm">
+            <h2 className="text-xs font-serif font-bold uppercase text-[#3B261C] dark:text-[#FAF7F2] tracking-wider border-b border-stone-200 dark:border-stone-800 pb-2 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#A94432]" /> Header & Legal Footer Copy
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Header Text
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Header Subtitle / Tax Reference
                 </label>
                 <input
                   type="text"
                   value={template.headerText}
                   onChange={(e) => handleChange("headerText", e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5] transition"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2] focus:outline-none focus:border-[#3B261C]"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Footer Legal Notice / Disclaimer
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Footer Legal Terms / Guarantee
                 </label>
                 <textarea
                   rows={2}
                   value={template.footerText}
                   onChange={(e) => handleChange("footerText", e.target.value)}
-                  className="w-full text-xs p-3 rounded-xl bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5] transition"
+                  className="w-full text-xs p-3 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2] focus:outline-none focus:border-[#3B261C]"
                 />
               </div>
             </div>
           </div>
 
-          {/* Contact Details */}
-          <div className="bg-[#211815] border border-[#3A2930] rounded-2xl p-6 space-y-4">
-            <h2 className="text-xs font-mono uppercase text-[#E8D5B5] tracking-wider border-b border-[#3A2930] pb-2 flex items-center gap-2">
-              <Mail className="w-4 h-4 text-[#FB7185]" /> Contact & Issuer Details
+          {/* Issuer Details */}
+          <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-6 space-y-4 shadow-sm">
+            <h2 className="text-xs font-serif font-bold uppercase text-[#3B261C] dark:text-[#FAF7F2] tracking-wider border-b border-stone-200 dark:border-stone-800 pb-2 flex items-center gap-2">
+              <Mail className="w-4 h-4 text-[#A94432]" /> Issuer Support & Legal Address
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
                   Support Email
                 </label>
                 <input
                   type="email"
                   value={template.supportEmail}
                   onChange={(e) => handleChange("supportEmail", e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5] transition"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2] focus:outline-none focus:border-[#3B261C]"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Support Phone
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Support Phone / Hotline
                 </label>
                 <input
                   type="text"
                   value={template.supportPhone}
                   onChange={(e) => handleChange("supportPhone", e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5] transition"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2] focus:outline-none focus:border-[#3B261C]"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1">
-                  Company Legal Address
+                <label className="block text-[11px] font-bold text-[#8A6048] mb-1">
+                  Company Legal Entity Address
                 </label>
                 <input
                   type="text"
                   value={template.companyAddress}
                   onChange={(e) => handleChange("companyAddress", e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] focus:outline-none focus:border-[#E8D5B5] transition"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-300 dark:border-stone-700 text-[#151311] dark:text-[#FAF7F2] focus:outline-none focus:border-[#3B261C]"
                 />
               </div>
             </div>
           </div>
         </form>
 
-        {/* Live Visual Preview (5 cols) */}
-        <div className="lg:col-span-5 sticky top-24 space-y-3">
-          <div className="flex items-center justify-between text-xs font-mono uppercase text-[#E8D5B5]">
-            <span className="flex items-center gap-2">
-              <Eye className="w-3.5 h-3.5 text-[#FB7185]" /> Live Receipt Preview
+        {/* Right Live Preview (5 cols) */}
+        <div className="lg:col-span-5 sticky top-20 space-y-3">
+          <div className="flex items-center justify-between text-xs font-mono uppercase text-[#3B261C] dark:text-[#FAF7F2]">
+            <span className="flex items-center gap-1.5 font-bold">
+              <Eye className="w-4 h-4 text-[#A94432]" /> Authoritative Live Preview
             </span>
-            <span className="text-[10px] text-[#BBAE9F]">Simulated v{template.version + 1}</span>
+            <span className="text-[11px] text-[#8A6048]">Draft v{template.version + 1}</span>
           </div>
 
-          {/* Preview Card */}
+          {/* Printable Preview Card */}
           <div
-            className="rounded-3xl p-6 shadow-2xl relative overflow-hidden border border-[#3A2930]"
+            className="rounded-3xl p-6 shadow-xl relative overflow-hidden border border-stone-300 transition-colors"
             style={{
               backgroundColor: template.backgroundColor,
               color: template.textColor,
@@ -472,47 +607,112 @@ export default function AdminReceiptTemplateSettingsPage() {
             </div>
 
             <div className="relative z-10 space-y-5">
+              {/* Top Accent Line */}
+              <div
+                className="h-1 rounded-full w-full"
+                style={{ backgroundColor: template.primaryColor }}
+              />
+
               {/* Receipt Header */}
-              <div className="flex items-start justify-between border-b pb-4" style={{ borderColor: `${template.textColor}20` }}>
-                <div>
-                  <h3 className="font-serif text-lg font-bold" style={{ color: template.primaryColor }}>
-                    {template.platformName}
-                  </h3>
-                  <p className="text-[10px] opacity-75">{template.headerText}</p>
+              <div
+                className="flex items-start justify-between border-b pb-4"
+                style={{ borderColor: `${template.textColor}25` }}
+              >
+                <div className="flex items-center gap-3">
+                  {logoPreviewUrl ? (
+                    <img
+                      src={logoPreviewUrl}
+                      alt="Logo"
+                      className="w-10 h-10 object-contain rounded-lg"
+                    />
+                  ) : (
+                    <div
+                      className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-xs"
+                      style={{ backgroundColor: template.primaryColor }}
+                    >
+                      {template.platformName.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <h3
+                      className="font-serif text-lg font-bold"
+                      style={{ color: template.primaryColor }}
+                    >
+                      {template.platformName}
+                    </h3>
+                    <p className="text-[10px] opacity-75">{template.headerText}</p>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[11px] font-mono font-bold block" style={{ color: template.secondaryColor }}>
+                  <span
+                    className="text-[11px] font-mono font-bold block"
+                    style={{ color: template.secondaryColor }}
+                  >
                     {template.receiptTitle}
                   </span>
-                  <span className="text-[10px] font-mono opacity-60">INV-2026-DEMO</span>
+                  <span className="text-[10px] font-mono opacity-60">
+                    RCP-2026-DEMO
+                  </span>
+                </div>
+              </div>
+
+              {/* Customer & Order Metadata */}
+              <div className="grid grid-cols-2 gap-2 text-[10px] opacity-80 pb-2">
+                <div>
+                  <span className="block font-semibold">Billed To:</span>
+                  <span>Rohan Sharma</span>
+                  <span className="block font-mono text-[9px]">rohan@example.com</span>
+                </div>
+                <div className="text-right">
+                  <span className="block font-semibold">Payment Reference:</span>
+                  <span className="font-mono">pay_DEMO123456</span>
+                  <span className="block">UPI • Standard</span>
                 </div>
               </div>
 
               {/* Sample Line Item */}
               <div className="space-y-2 py-2">
-                <div className="text-[11px] font-mono uppercase opacity-75 flex justify-between">
-                  <span>Product / License</span>
+                <div className="text-[10px] font-mono uppercase opacity-75 flex justify-between">
+                  <span>Deliverable Product</span>
                   <span>Amount</span>
                 </div>
-                <div className="p-2.5 rounded-xl flex items-center justify-between text-xs" style={{ backgroundColor: `${template.secondaryColor}10` }}>
+                <div
+                  className="p-3 rounded-xl flex items-center justify-between text-xs"
+                  style={{ backgroundColor: `${template.secondaryColor}12` }}
+                >
                   <div>
-                    <div className="font-medium">Modern UI Design System</div>
-                    <div className="text-[10px] opacity-70">Commercial License</div>
+                    <div className="font-bold">Next.js SaaS Enterprise Kit</div>
+                    <div className="text-[10px] opacity-70">
+                      Standard Commercial License
+                    </div>
                   </div>
-                  <div className="font-bold">₹1,999.00</div>
+                  <div className="font-mono font-bold">₹1,499.00</div>
                 </div>
               </div>
 
-              {/* Total */}
-              <div className="flex items-center justify-between pt-3 border-t text-sm font-bold" style={{ borderColor: `${template.textColor}20` }}>
-                <span>Total Paid</span>
-                <span style={{ color: template.primaryColor }}>₹1,999.00</span>
+              {/* Total Settlement */}
+              <div
+                className="flex items-center justify-between pt-3 border-t text-sm font-bold"
+                style={{ borderColor: `${template.textColor}25` }}
+              >
+                <span>Total Amount Paid</span>
+                <span
+                  className="font-mono text-base"
+                  style={{ color: template.primaryColor }}
+                >
+                  ₹1,499.00
+                </span>
               </div>
 
-              {/* Footer */}
-              <div className="pt-4 border-t text-[10px] opacity-70 leading-relaxed text-center" style={{ borderColor: `${template.textColor}20` }}>
+              {/* Footer Legal Copy */}
+              <div
+                className="pt-4 border-t text-[9px] opacity-70 leading-relaxed text-center"
+                style={{ borderColor: `${template.textColor}25` }}
+              >
                 <p>{template.footerText}</p>
-                <p className="mt-1 font-mono">{template.supportEmail} • {template.companyAddress}</p>
+                <p className="mt-1 font-mono">
+                  {template.supportEmail} • {template.companyAddress}
+                </p>
               </div>
             </div>
           </div>

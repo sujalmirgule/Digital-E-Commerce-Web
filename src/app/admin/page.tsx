@@ -14,10 +14,15 @@ import {
   AlertCircle,
   Check,
   X,
-  ChevronDown,
-  MoreHorizontal,
   ArrowRight,
   TrendingUp,
+  FileText,
+  Download,
+  ShieldCheck,
+  Activity,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
 } from "lucide-react";
 
 interface OverviewData {
@@ -26,6 +31,9 @@ interface OverviewData {
     sellers: { total: number; approved: number; pending: number; rejected: number };
     products: { total: number; published: number; pendingModeration: number; draft: number; rejected: number };
     orders: { total: number; paid: number; pending: number; failed: number; cancelled: number };
+    payments?: { total: number; captured: number; pending: number; failed: number };
+    downloads?: { total: number };
+    downloadsCount?: number;
     financials: {
       grossTransactionValuePaise: number;
       platformCommissionPaise: number;
@@ -34,6 +42,45 @@ interface OverviewData {
     receiptsCount: number;
     reviewsCount: number;
   };
+  recentOrders: Array<{
+    id: string;
+    buyerName: string;
+    buyerEmail: string;
+    totalAmountPaise: number;
+    status: string;
+    createdAt: string;
+    paidAt: string | null;
+  }>;
+  recentAuditLogs: Array<{
+    id: string;
+    action: string;
+    targetEntity: string;
+    targetId: string;
+    adminName: string;
+    createdAt: string;
+  }>;
+  pendingModerationQueue?: Array<{
+    id: string;
+    title: string;
+    category: string;
+    creator: string;
+    pricePaise: number;
+    thumbnail: string;
+    createdAt: string;
+  }>;
+  pendingSellersQueue?: Array<{
+    id: string;
+    storeName: string;
+    name: string;
+    email: string;
+    createdAt: string;
+  }>;
+  systemHealth?: {
+    status: string;
+    database: string;
+    latencyMs: number;
+    uptimeSeconds: number;
+  };
 }
 
 export default function AdminOverviewPage() {
@@ -41,8 +88,6 @@ export default function AdminOverviewPage() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modFilter, setModFilter] = useState("pending");
-  const [userTab, setUserTab] = useState("users");
   const [moderatingId, setModeratingId] = useState<string | null>(null);
 
   const fetchOverview = useCallback(async () => {
@@ -72,115 +117,67 @@ export default function AdminOverviewPage() {
   }, [token, fetchOverview]);
 
   const handleModeration = async (productId: string, action: "approve" | "reject") => {
-    if (!token) {
-      alert(`Action recorded: Product ${action}d successfully (Demo Mode).`);
-      return;
-    }
+    if (!token) return;
     setModeratingId(productId);
     try {
       const res = await fetchWithAuth(`/api/v1/admin/products/${productId}/${action}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: action === "reject" ? "Curation quality standards" : undefined }),
+        body: JSON.stringify({
+          reason: action === "reject" ? "Curation quality standards" : undefined,
+        }),
       });
       if (res.ok) {
         fetchOverview();
       } else {
-        alert(`Action recorded: Product ${action}d.`);
+        const d = await res.json();
+        alert(d.error?.message || `Failed to ${action} product`);
       }
     } catch {
-      alert(`Action recorded: Product ${action}d.`);
+      alert(`Network error while attempting to ${action} product`);
     } finally {
       setModeratingId(null);
     }
   };
 
-  // Benchmark stats matching reference image
-  const stats = {
-    users: data?.stats?.users?.total ? data.stats.users.total.toLocaleString("en-IN") : "12,580",
-    sellers: data?.stats?.sellers?.total ? data.stats.sellers.total.toLocaleString("en-IN") : "1,240",
-    products: data?.stats?.products?.total ? data.stats.products.total.toLocaleString("en-IN") : "8,920",
-    orders: data?.stats?.orders?.total ? data.stats.orders.total.toLocaleString("en-IN") : "24,580",
-    payments: data?.stats?.financials?.grossTransactionValuePaise
-      ? `₹${((data.stats.financials.grossTransactionValuePaise / 100) / 100000).toFixed(1)}L`
-      : "₹12.4L",
-    pending: data?.stats?.products?.pendingModeration ?? 36,
+  const formatRupee = (paise: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(paise / 100);
   };
 
-  // Benchmark queue items matching reference image
-  const moderationQueue = [
-    {
-      id: "prod-1",
-      title: "Minimal Icon Pack",
-      creator: "Alex Parker",
-      category: "Design",
-      price: "₹499",
-      status: "Pending",
-      thumbnail: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&auto=format&fit=crop&q=80",
-    },
-    {
-      id: "prod-2",
-      title: "Notion Finance Tracker",
-      creator: "Priya Mishra",
-      category: "Productivity",
-      price: "₹799",
-      status: "Pending",
-      thumbnail: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=100&auto=format&fit=crop&q=80",
-    },
-    {
-      id: "prod-3",
-      title: "SaaS Landing Template",
-      creator: "Karan Verma",
-      category: "Development",
-      price: "₹1,199",
-      status: "Pending",
-      thumbnail: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=100&auto=format&fit=crop&q=80",
-    },
-    {
-      id: "prod-4",
-      title: "Freelance Suite",
-      creator: "Neha Singh",
-      category: "Education",
-      price: "₹599",
-      status: "Pending",
-      thumbnail: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=100&auto=format&fit=crop&q=80",
-    },
-  ];
+  const formatDate = (iso: string) => {
+    return new Date(iso).toLocaleDateString("en-IN", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-  // Benchmark users & sellers matching reference image
-  const usersList = [
-    { name: "Sujal Verma", email: "sujal@example.com", role: "Buyer", status: "Active", joined: "12 Mar 2024" },
-    { name: "Priya Sharma", email: "priya@example.com", role: "Seller", status: "Active", joined: "11 Mar 2024" },
-    { name: "Alex Parker", email: "alex@example.com", role: "Seller", status: "Pending", joined: "10 Mar 2024" },
-    { name: "Neha Singh", email: "neha@example.com", role: "Seller", status: "Active", joined: "8 Mar 2024" },
-  ];
-
-  const sellersList = [
-    { name: "PixelForge Studio", email: "pixelforge@example.com", role: "Seller", status: "Active", joined: "01 Feb 2024" },
-    { name: "PlanStudio", email: "planstudio@example.com", role: "Seller", status: "Active", joined: "15 Jan 2024" },
-    { name: "DesignEra", email: "designera@example.com", role: "Seller", status: "Active", joined: "20 Jan 2024" },
-    { name: "Sarah Khan", email: "sarah@example.com", role: "Seller", status: "Active", joined: "12 Feb 2024" },
-  ];
+  const s = data?.stats;
 
   return (
-    <div className="space-y-8 md:space-y-10">
-      {/* 01 — Header matching reference */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+    <div className="space-y-8">
+      {/* 01 — Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#3B261C]/20 dark:border-stone-800">
         <div>
-          <h1 className="text-3xl md:text-4xl font-serif font-normal text-velvet-cream-soft tracking-tight">
-            Platform Control
+          <h1 className="text-3xl font-serif font-bold text-[#151311] dark:text-[#FAF7F2] tracking-tight">
+            Marketplace Control Center
           </h1>
-          <p className="text-velvet-cream-muted text-xs sm:text-sm mt-1 font-light">
-            Monitor, manage and grow your <span className="text-velvet-cream font-medium">marketplace.</span>
+          <p className="text-[#8A6048] dark:text-[#C8AA91] text-xs sm:text-sm mt-1">
+            Authoritative executive metrics aggregated live from PostgreSQL.
           </p>
         </div>
         <button
           onClick={fetchOverview}
           disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-mono text-velvet-cream bg-velvet-mocha border border-velvet-border rounded-xl hover:border-velvet-cream/40 transition-colors shadow-sm self-start sm:self-auto disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-[#3B261C] dark:text-[#FAF7F2] bg-white dark:bg-[#211D1A] border border-[#C8AA91]/60 dark:border-stone-700 rounded-xl hover:border-[#3B261C] transition shadow-sm disabled:opacity-50"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-velvet-rose" : ""}`} />
-          <span>Refresh Metrics</span>
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#A94432]" : ""}`} />
+          <span>Refresh Live Metrics</span>
         </button>
       </div>
 
@@ -191,441 +188,354 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      {/* 02 — Top 6 Metrics Grid matching reference image */}
+      {/* 02 — High-Level Operational Metrics (6 Cards) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        {/* Metric 1: Users */}
-        <div className="p-4 rounded-2xl bg-velvet-mocha border border-velvet-border/80 hover:border-velvet-cream/40 transition-all shadow-md">
-          <div className="flex items-center justify-between text-velvet-cream-muted mb-2">
-            <Users className="w-4 h-4 text-velvet-rose" />
-            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider">Users</span>
+        <Link
+          href="/admin/users"
+          className="p-4 rounded-2xl bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 hover:border-[#3B261C] transition shadow-sm group"
+        >
+          <div className="flex items-center justify-between text-[#8A6048] mb-2">
+            <Users className="w-4 h-4 text-[#A94432]" />
+            <span className="text-[10px] uppercase font-bold tracking-wider">Users</span>
           </div>
-          <div className="text-2xl font-serif font-light text-velvet-cream-soft">
-            {stats.users}
+          <div className="text-2xl font-serif font-bold text-[#151311] dark:text-[#FAF7F2]">
+            {s?.users?.total?.toLocaleString("en-IN") || "0"}
           </div>
+          <div className="text-[11px] text-[#8A6048] mt-1">
+            {s?.users?.buyers || 0} buyers • {s?.users?.admins || 0} admins
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/sellers"
+          className="p-4 rounded-2xl bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 hover:border-[#3B261C] transition shadow-sm group"
+        >
+          <div className="flex items-center justify-between text-[#8A6048] mb-2">
+            <Store className="w-4 h-4 text-[#A94432]" />
+            <span className="text-[10px] uppercase font-bold tracking-wider">Sellers</span>
+          </div>
+          <div className="text-2xl font-serif font-bold text-[#151311] dark:text-[#FAF7F2]">
+            {s?.sellers?.total?.toLocaleString("en-IN") || "0"}
+          </div>
+          <div className="text-[11px] text-[#8A6048] mt-1">
+            {s?.sellers?.approved || 0} approved •{" "}
+            <span className="text-[#A94432] font-semibold">{s?.sellers?.pending || 0} pending</span>
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/products"
+          className="p-4 rounded-2xl bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 hover:border-[#3B261C] transition shadow-sm group"
+        >
+          <div className="flex items-center justify-between text-[#8A6048] mb-2">
+            <Package className="w-4 h-4 text-[#A94432]" />
+            <span className="text-[10px] uppercase font-bold tracking-wider">Products</span>
+          </div>
+          <div className="text-2xl font-serif font-bold text-[#151311] dark:text-[#FAF7F2]">
+            {s?.products?.total?.toLocaleString("en-IN") || "0"}
+          </div>
+          <div className="text-[11px] text-[#8A6048] mt-1">
+            {s?.products?.published || 0} live •{" "}
+            <span className="text-[#A94432] font-semibold">{s?.products?.pendingModeration || 0} review</span>
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/orders"
+          className="p-4 rounded-2xl bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 hover:border-[#3B261C] transition shadow-sm group"
+        >
+          <div className="flex items-center justify-between text-[#8A6048] mb-2">
+            <ShoppingBag className="w-4 h-4 text-[#A94432]" />
+            <span className="text-[10px] uppercase font-bold tracking-wider">Orders</span>
+          </div>
+          <div className="text-2xl font-serif font-bold text-[#151311] dark:text-[#FAF7F2]">
+            {s?.orders?.total?.toLocaleString("en-IN") || "0"}
+          </div>
+          <div className="text-[11px] text-[#8A6048] mt-1">
+            <span className="text-emerald-600 font-semibold">{s?.orders?.paid || 0} paid</span> • {s?.orders?.failed || 0} failed
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/payments"
+          className="p-4 rounded-2xl bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 hover:border-[#3B261C] transition shadow-sm group"
+        >
+          <div className="flex items-center justify-between text-[#8A6048] mb-2">
+            <CreditCard className="w-4 h-4 text-[#A94432]" />
+            <span className="text-[10px] uppercase font-bold tracking-wider">Payments</span>
+          </div>
+          <div className="text-2xl font-serif font-bold text-[#151311] dark:text-[#FAF7F2]">
+            {s?.payments?.total ? s.payments.total.toLocaleString("en-IN") : s?.orders?.paid?.toLocaleString("en-IN") || "0"}
+          </div>
+          <div className="text-[11px] text-[#8A6048] mt-1">
+            <span className="text-emerald-600 font-semibold">{s?.payments?.captured || s?.orders?.paid || 0} captured</span>
+          </div>
+        </Link>
+
+        <Link
+          href="/admin/receipts"
+          className="p-4 rounded-2xl bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 hover:border-[#3B261C] transition shadow-sm group"
+        >
+          <div className="flex items-center justify-between text-[#8A6048] mb-2">
+            <FileText className="w-4 h-4 text-[#A94432]" />
+            <span className="text-[10px] uppercase font-bold tracking-wider">Receipts</span>
+          </div>
+          <div className="text-2xl font-serif font-bold text-[#151311] dark:text-[#FAF7F2]">
+            {s?.receiptsCount?.toLocaleString("en-IN") || "0"}
+          </div>
+          <div className="text-[11px] text-[#8A6048] mt-1">
+            {s?.downloadsCount || s?.downloads?.total || 0} downloads
+          </div>
+        </Link>
+      </div>
+
+      {/* 03 — Financial Settlement Matrix (Authoritative integer paise aggregation) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-5 rounded-2xl bg-[#3B261C] text-[#FAF7F2] shadow-md space-y-2">
+          <div className="flex items-center justify-between text-[#C8AA91]">
+            <span className="text-xs uppercase font-bold tracking-wider">Gross Sales Volume</span>
+            <TrendingUp className="w-4 h-4 text-[#C46A4A]" />
+          </div>
+          <div className="text-3xl font-serif font-bold tracking-tight">
+            {formatRupee(s?.financials?.grossTransactionValuePaise || 0)}
+          </div>
+          <p className="text-[11px] text-[#C8AA91]">
+            Total captured e-commerce checkout GMV in Indian Rupees.
+          </p>
         </div>
 
-        {/* Metric 2: Sellers */}
-        <div className="p-4 rounded-2xl bg-velvet-mocha border border-velvet-border/80 hover:border-velvet-cream/40 transition-all shadow-md">
-          <div className="flex items-center justify-between text-velvet-cream-muted mb-2">
-            <Store className="w-4 h-4 text-velvet-cream" />
-            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider">Sellers</span>
+        <div className="p-5 rounded-2xl bg-stone-50 dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-[#8A6048]">
+            <span className="text-xs uppercase font-bold tracking-wider">Platform Commissions</span>
+            <ShieldCheck className="w-4 h-4 text-[#A94432]" />
           </div>
-          <div className="text-2xl font-serif font-light text-velvet-cream-soft">
-            {stats.sellers}
+          <div className="text-3xl font-serif font-bold text-[#151311] dark:text-[#FAF7F2] tracking-tight">
+            {formatRupee(s?.financials?.platformCommissionPaise || 0)}
           </div>
+          <p className="text-[11px] text-[#8A6048]">
+            Platform transaction service fee retained across paid deliverables.
+          </p>
         </div>
 
-        {/* Metric 3: Products */}
-        <div className="p-4 rounded-2xl bg-velvet-mocha border border-velvet-border/80 hover:border-velvet-cream/40 transition-all shadow-md">
-          <div className="flex items-center justify-between text-velvet-cream-muted mb-2">
-            <Package className="w-4 h-4 text-velvet-rose" />
-            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider">Products</span>
+        <div className="p-5 rounded-2xl bg-stone-50 dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-[#8A6048]">
+            <span className="text-xs uppercase font-bold tracking-wider">Net Creator Earnings</span>
+            <Store className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-serif font-light text-velvet-cream-soft">
-            {stats.products}
+          <div className="text-3xl font-serif font-bold text-emerald-600 dark:text-emerald-400 tracking-tight">
+            {formatRupee(s?.financials?.sellerNetEarningsPaise || 0)}
           </div>
-        </div>
-
-        {/* Metric 4: Orders */}
-        <div className="p-4 rounded-2xl bg-velvet-mocha border border-velvet-border/80 hover:border-velvet-cream/40 transition-all shadow-md">
-          <div className="flex items-center justify-between text-velvet-cream-muted mb-2">
-            <ShoppingBag className="w-4 h-4 text-velvet-cream" />
-            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider">Orders</span>
-          </div>
-          <div className="text-2xl font-serif font-light text-velvet-cream-soft">
-            {stats.orders}
-          </div>
-        </div>
-
-        {/* Metric 5: Payments */}
-        <div className="p-4 rounded-2xl bg-velvet-mocha border border-velvet-border/80 hover:border-velvet-cream/40 transition-all shadow-md">
-          <div className="flex items-center justify-between text-velvet-cream-muted mb-2">
-            <CreditCard className="w-4 h-4 text-velvet-rose" />
-            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider">Payments</span>
-          </div>
-          <div className="text-2xl font-serif font-light text-velvet-cream-soft">
-            {stats.payments}
-          </div>
-        </div>
-
-        {/* Metric 6: Pending Approvals */}
-        <div className="p-4 rounded-2xl bg-velvet-mocha border border-velvet-border/80 hover:border-velvet-cream/40 transition-all shadow-md">
-          <div className="flex items-center justify-between text-velvet-cream-muted mb-2">
-            <Clock className="w-4 h-4 text-amber-400" />
-            <span className="text-[10px] uppercase font-mono font-semibold tracking-wider">Pending</span>
-          </div>
-          <div className="text-2xl font-serif font-light text-amber-300">
-            {stats.pending}
-          </div>
+          <p className="text-[11px] text-[#8A6048]">
+            Authoritative net earnings credited to merchant balances.
+          </p>
         </div>
       </div>
 
-      {/* 03 — Row 1: Product Approvals (60%) + Recent Activity (40%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Left Column (8 Cols): Product Approvals */}
-        <div className="lg:col-span-8 p-6 rounded-2xl bg-velvet-mocha border border-velvet-border/80 flex flex-col justify-between shadow-xl shadow-black/40">
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-velvet-border/60">
-              <div>
-                <h2 className="font-serif font-medium text-velvet-cream-soft text-base">
-                  Product Approvals
-                </h2>
-              </div>
-
-              <div className="flex items-center justify-between sm:justify-end gap-3">
-                {/* Tabs matching reference */}
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-velvet-plum border border-velvet-border">
-                  <button
-                    onClick={() => setModFilter("pending")}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
-                      modFilter === "pending"
-                        ? "bg-[#F43F5E] text-white shadow-sm"
-                        : "text-velvet-cream-muted hover:text-velvet-cream-soft"
-                    }`}
-                  >
-                    Pending ({stats.pending})
-                  </button>
-                  <button
-                    onClick={() => setModFilter("approved")}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
-                      modFilter === "approved"
-                        ? "bg-[#F43F5E] text-white shadow-sm"
-                        : "text-velvet-cream-muted hover:text-velvet-cream-soft"
-                    }`}
-                  >
-                    Approved
-                  </button>
-                  <button
-                    onClick={() => setModFilter("rejected")}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
-                      modFilter === "rejected"
-                        ? "bg-[#F43F5E] text-white shadow-sm"
-                        : "text-velvet-cream-muted hover:text-velvet-cream-soft"
-                    }`}
-                  >
-                    Rejected
-                  </button>
-                </div>
-
-                <Link
-                  href="/admin/products"
-                  className="text-xs font-mono text-velvet-rose hover:text-velvet-rose-soft shrink-0"
-                >
-                  View all →
-                </Link>
-              </div>
+      {/* 04 — Operational Action Queues (Pending Products & Pending Sellers) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Pending Product Moderation */}
+        <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800">
+            <div>
+              <h3 className="font-serif font-bold text-base text-[#151311] dark:text-[#FAF7F2]">
+                Products Awaiting Moderation
+              </h3>
+              <p className="text-[11px] text-[#8A6048]">
+                {s?.products?.pendingModeration || 0} product(s) pending curation
+              </p>
             </div>
-
-            {/* Moderation Table matching reference columns */}
-            <div className="overflow-x-auto mt-2">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-velvet-border/60 text-velvet-cream-muted uppercase text-[10px] tracking-wider font-mono">
-                    <th className="py-2.5 font-medium">Product</th>
-                    <th className="py-2.5 font-medium">Creator</th>
-                    <th className="py-2.5 font-medium">Category</th>
-                    <th className="py-2.5 font-medium">Price</th>
-                    <th className="py-2.5 font-medium">Status</th>
-                    <th className="py-2.5 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-velvet-border/50 text-velvet-cream-soft">
-                  {moderationQueue.map((item) => (
-                    <tr key={item.id} className="hover:bg-velvet-plum/30 transition-colors">
-                      <td className="py-3 flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-velvet-plum relative border border-velvet-border/60 shrink-0">
-                          <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
-                        </div>
-                        <span className="font-medium text-velvet-cream-soft truncate max-w-[140px]">
-                          {item.title}
-                        </span>
-                      </td>
-                      <td className="py-3 text-velvet-cream-muted truncate max-w-[110px]">{item.creator}</td>
-                      <td className="py-3 text-velvet-cream-muted">{item.category}</td>
-                      <td className="py-3 font-mono text-velvet-cream">{item.price}</td>
-                      <td className="py-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-amber-500/15 text-amber-300 border border-amber-500/20">
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleModeration(item.id, "approve")}
-                            disabled={moderatingId === item.id}
-                            className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white shadow-sm transition-colors disabled:opacity-50"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleModeration(item.id, "reject")}
-                            disabled={moderatingId === item.id}
-                            className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#1B101B] hover:bg-[#2B201C] border border-[#3A2930] text-velvet-cream-muted hover:text-white transition-colors disabled:opacity-50"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column (4 Cols): Recent Activity Feed matching reference */}
-        <div className="lg:col-span-4 p-6 rounded-2xl bg-velvet-mocha border border-velvet-border/80 flex flex-col justify-between shadow-xl shadow-black/40">
-          <div>
-            <div className="flex items-center justify-between pb-4 border-b border-velvet-border/60">
-              <h2 className="font-serif font-medium text-velvet-cream-soft text-base">
-                Recent Activity
-              </h2>
-              <Link href="/admin/audit-logs" className="text-xs font-mono text-velvet-rose hover:text-velvet-rose-soft">
-                View all →
-              </Link>
-            </div>
-
-            <div className="divide-y divide-velvet-border/60 my-2">
-              {[
-                {
-                  icon: Package,
-                  title: "New product submitted",
-                  meta: "by Alex Parker",
-                  time: "2 mins ago",
-                  color: "text-velvet-rose",
-                },
-                {
-                  icon: Store,
-                  title: "New seller registration",
-                  meta: "by Priya Sharma",
-                  time: "12 mins ago",
-                  color: "text-velvet-cream",
-                },
-                {
-                  icon: Check,
-                  title: "Product approved",
-                  meta: "Minimal Icon Pack",
-                  time: "1 hour ago",
-                  color: "text-emerald-400",
-                },
-                {
-                  icon: ShoppingBag,
-                  title: "New order received",
-                  meta: "#ORD-7291",
-                  time: "2 hours ago",
-                  color: "text-velvet-rose",
-                },
-              ].map((act, idx) => {
-                const Icon = act.icon;
-                return (
-                  <div key={idx} className="py-3 flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-velvet-plum border border-velvet-border/70 flex items-center justify-center shrink-0 mt-0.5">
-                      <Icon className={`w-3.5 h-3.5 ${act.color}`} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-velvet-cream-soft truncate">{act.title}</p>
-                      <p className="text-[11px] text-velvet-cream-muted truncate">{act.meta}</p>
-                    </div>
-                    <span className="text-[10px] font-mono text-velvet-cream-muted/70 shrink-0">{act.time}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-velvet-border/50">
             <Link
-              href="/admin/audit-logs"
-              className="w-full py-2 rounded-xl bg-velvet-plum hover:bg-velvet-mocha border border-velvet-border text-xs text-velvet-cream font-medium text-center block transition-colors"
+              href="/admin/products"
+              className="text-xs font-semibold text-[#A94432] hover:underline inline-flex items-center gap-1"
             >
-              Platform Security Log →
+              View Register <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
+
+          {data?.pendingModerationQueue && data.pendingModerationQueue.length > 0 ? (
+            <div className="space-y-2.5">
+              {data.pendingModerationQueue.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-3 bg-stone-50 dark:bg-stone-900/60 rounded-xl border border-stone-200 dark:border-stone-800 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={item.thumbnail}
+                      alt={item.title}
+                      className="w-10 h-10 object-cover rounded-lg border border-stone-200 dark:border-stone-700 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <div className="font-bold text-[#151311] dark:text-[#FAF7F2] truncate">{item.title}</div>
+                      <div className="text-[10px] text-[#8A6048]">
+                        by {item.creator} • {item.category} • {formatRupee(item.pricePaise)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleModeration(item.id, "approve")}
+                      disabled={moderatingId === item.id}
+                      className="px-2.5 py-1 text-[10px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition disabled:opacity-50"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleModeration(item.id, "reject")}
+                      disabled={moderatingId === item.id}
+                      className="px-2.5 py-1 text-[10px] font-semibold bg-rose-50 text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-100 transition disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-[#8A6048] text-xs">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+              All submitted products have been moderated. Queue is clear!
+            </div>
+          )}
+        </div>
+
+        {/* Pending Seller Applications */}
+        <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-stone-100 dark:border-stone-800">
+            <div>
+              <h3 className="font-serif font-bold text-base text-[#151311] dark:text-[#FAF7F2]">
+                Pending Seller Onboarding
+              </h3>
+              <p className="text-[11px] text-[#8A6048]">
+                {s?.sellers?.pending || 0} application(s) awaiting KYC approval
+              </p>
+            </div>
+            <Link
+              href="/admin/sellers"
+              className="text-xs font-semibold text-[#A94432] hover:underline inline-flex items-center gap-1"
+            >
+              View Sellers <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {data?.pendingSellersQueue && data.pendingSellersQueue.length > 0 ? (
+            <div className="space-y-2.5">
+              {data.pendingSellersQueue.map((seller) => (
+                <div
+                  key={seller.id}
+                  className="p-3 bg-stone-50 dark:bg-stone-900/60 rounded-xl border border-stone-200 dark:border-stone-800 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="min-w-0">
+                    <div className="font-bold text-[#151311] dark:text-[#FAF7F2] truncate">{seller.storeName}</div>
+                    <div className="text-[10px] text-[#8A6048]">
+                      Applicant: {seller.name} • {seller.email}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/admin/sellers`}
+                    className="px-2.5 py-1 text-[10px] font-semibold bg-[#3B261C] hover:bg-[#684332] text-[#FAF7F2] rounded-lg transition"
+                  >
+                    Review KYC
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-[#8A6048] text-xs">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+              All merchant KYC applications have been reviewed. Queue is clear!
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 04 — Row 2: Orders & Payments (Charts) + Users & Sellers (Table) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        {/* Left Column (6 Cols): Orders & Payments (Revenue bar chart + Donut) */}
-        <div className="lg:col-span-6 p-6 rounded-2xl bg-velvet-mocha border border-velvet-border/80 flex flex-col justify-between shadow-xl shadow-black/40">
-          <div>
-            <div className="flex items-center justify-between pb-4 border-b border-velvet-border/60">
-              <div>
-                <h2 className="font-serif font-medium text-velvet-cream-soft text-base">
-                  Orders & Payments
-                </h2>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-velvet-cream bg-velvet-plum px-3 py-1.5 rounded-xl border border-velvet-border font-mono">
-                <span>Last 30 days</span>
-                <ChevronDown className="w-3.5 h-3.5 text-velvet-cream-muted" />
-              </div>
-            </div>
+      {/* 05 — Recent Orders & Real Audit Activity Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Orders */}
+        <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
+            <h3 className="font-serif font-bold text-base text-[#151311] dark:text-[#FAF7F2]">
+              Recent Orders
+            </h3>
+            <Link
+              href="/admin/orders"
+              className="text-xs font-semibold text-[#A94432] hover:underline inline-flex items-center gap-1"
+            >
+              All Orders <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
 
-            {/* Total Revenue Callout */}
-            <div className="my-4">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-velvet-cream-muted">Total Revenue</span>
-              <div className="text-3xl font-serif font-light text-velvet-cream-soft mt-0.5">₹12,48,250</div>
-            </div>
-
-            {/* Combined Bar Chart & Radial Donut Chart */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-2">
-              {/* Daily Volume Bars */}
-              <div className="space-y-2">
-                <span className="text-[11px] font-mono text-velvet-cream-muted">Daily Volume</span>
-                <div className="h-28 flex items-end gap-1.5 pt-2">
-                  {[40, 65, 30, 85, 95, 70, 50, 80, 60, 90, 75, 100].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-t-sm transition-all"
-                      style={{
-                        height: `${h}%`,
-                        backgroundColor: i >= 9 ? "#F43F5E" : "#2B201C",
-                        border: "1px solid #3A2930",
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Order Status Donut Chart matching reference */}
-              <div className="p-3.5 rounded-xl bg-velvet-plum border border-velvet-border/70 flex flex-col items-center">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-velvet-cream-muted mb-2">Order Status</span>
-                <div className="relative w-24 h-24 flex items-center justify-center">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    {/* Background circle */}
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#211815"
-                      strokeWidth="3.8"
-                    />
-                    {/* Completed 75% Cream */}
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#E8D5B5"
-                      strokeWidth="3.8"
-                      strokeDasharray="75, 100"
-                    />
-                    {/* Pending 17% Rose */}
-                    <path
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#F43F5E"
-                      strokeWidth="3.8"
-                      strokeDasharray="17, 100"
-                      strokeDashoffset="-75"
-                    />
-                  </svg>
-                  <div className="absolute text-center">
-                    <span className="text-xs font-mono font-bold text-velvet-cream-soft">24,580</span>
-                    <span className="text-[8px] text-velvet-cream-muted block font-mono">Total</span>
+          <div className="divide-y divide-stone-100 dark:divide-stone-800 text-xs">
+            {data?.recentOrders && data.recentOrders.length > 0 ? (
+              data.recentOrders.map((order) => (
+                <div key={order.id} className="py-2.5 flex items-center justify-between">
+                  <div>
+                    <Link
+                      href={`/admin/orders?search=${order.id}`}
+                      className="font-mono font-semibold text-[#A94432] hover:underline"
+                    >
+                      #{order.id.slice(-8).toUpperCase()}
+                    </Link>
+                    <div className="text-[11px] text-[#8A6048]">
+                      {order.buyerName} • {formatDate(order.createdAt)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono font-bold text-[#151311] dark:text-[#FAF7F2]">
+                      {formatRupee(order.totalAmountPaise)}
+                    </div>
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        order.status === "PAID"
+                          ? "bg-emerald-500/15 text-emerald-600"
+                          : "bg-amber-500/15 text-amber-600"
+                      }`}
+                    >
+                      {order.status}
+                    </span>
                   </div>
                 </div>
-
-                {/* Legend matching reference */}
-                <div className="mt-2 text-[10px] font-mono space-y-1 w-full">
-                  <div className="flex justify-between items-center text-velvet-cream-muted">
-                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#E8D5B5]" /> Completed</span>
-                    <span className="text-velvet-cream">18,420 (75%)</span>
-                  </div>
-                  <div className="flex justify-between items-center text-velvet-cream-muted">
-                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#F43F5E]" /> Pending</span>
-                    <span className="text-velvet-rose">4,120 (17%)</span>
-                  </div>
-                  <div className="flex justify-between items-center text-velvet-cream-muted">
-                    <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#2B201C] border border-[#3A2930]" /> Cancelled</span>
-                    <span>2,040 (8%)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-[#8A6048]">No recent orders</div>
+            )}
           </div>
         </div>
 
-        {/* Right Column (6 Cols): Users & Sellers Table matching reference */}
-        <div className="lg:col-span-6 p-6 rounded-2xl bg-velvet-mocha border border-velvet-border/80 flex flex-col justify-between shadow-xl shadow-black/40">
-          <div>
-            <div className="flex items-center justify-between pb-4 border-b border-velvet-border/60">
-              <h2 className="font-serif font-medium text-velvet-cream-soft text-base">
-                Users & Sellers
-              </h2>
+        {/* Real Audit Activity Feed */}
+        <div className="bg-white dark:bg-[#211D1A] border border-stone-200 dark:border-stone-800 rounded-2xl p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-stone-100 dark:border-stone-800">
+            <h3 className="font-serif font-bold text-base text-[#151311] dark:text-[#FAF7F2]">
+              Platform Audit Trail
+            </h3>
+            <Link
+              href="/admin/audit-logs"
+              className="text-xs font-semibold text-[#A94432] hover:underline inline-flex items-center gap-1"
+            >
+              All Logs <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
 
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-velvet-plum border border-velvet-border">
-                  <button
-                    onClick={() => setUserTab("users")}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
-                      userTab === "users"
-                        ? "bg-[#F43F5E] text-white shadow-sm"
-                        : "text-velvet-cream-muted hover:text-velvet-cream-soft"
-                    }`}
-                  >
-                    Users
-                  </button>
-                  <button
-                    onClick={() => setUserTab("sellers")}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
-                      userTab === "sellers"
-                        ? "bg-[#F43F5E] text-white shadow-sm"
-                        : "text-velvet-cream-muted hover:text-velvet-cream-soft"
-                    }`}
-                  >
-                    Sellers
-                  </button>
+          <div className="divide-y divide-stone-100 dark:divide-stone-800 text-xs">
+            {data?.recentAuditLogs && data.recentAuditLogs.length > 0 ? (
+              data.recentAuditLogs.map((log) => (
+                <div key={log.id} className="py-2.5 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold font-mono text-[11px] text-[#151311] dark:text-[#FAF7F2]">
+                      {log.action}
+                    </span>
+                    <div className="text-[11px] text-[#8A6048]">
+                      by {log.adminName} on {log.targetEntity} #{log.targetId.slice(-6)}
+                    </div>
+                  </div>
+                  <div className="text-right font-mono text-[10px] text-[#8A6048]">
+                    {formatDate(log.createdAt)}
+                  </div>
                 </div>
-
-                <Link
-                  href={userTab === "users" ? "/admin/users" : "/admin/sellers"}
-                  className="text-xs font-mono text-velvet-rose hover:text-velvet-rose-soft"
-                >
-                  View all →
-                </Link>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto mt-2">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-velvet-border/60 text-velvet-cream-muted uppercase text-[10px] tracking-wider font-mono">
-                    <th className="py-2.5 font-medium">Name</th>
-                    <th className="py-2.5 font-medium">Email</th>
-                    <th className="py-2.5 font-medium">Role</th>
-                    <th className="py-2.5 font-medium">Status</th>
-                    <th className="py-2.5 font-medium">Joined</th>
-                    <th className="py-2.5 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-velvet-border/50 text-velvet-cream-soft">
-                  {(userTab === "users" ? usersList : sellersList).map((u, idx) => (
-                    <tr key={idx} className="hover:bg-velvet-plum/30 transition-colors">
-                      <td className="py-3 font-medium text-velvet-cream-soft truncate max-w-[120px]">{u.name}</td>
-                      <td className="py-3 text-velvet-cream-muted font-mono text-[11px] truncate max-w-[140px]">{u.email}</td>
-                      <td className="py-3 text-velvet-cream-muted">{u.role}</td>
-                      <td className="py-3">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-medium ${
-                            u.status === "Active"
-                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
-                              : "bg-amber-500/15 text-amber-300 border border-amber-500/20"
-                          }`}
-                        >
-                          {u.status}
-                        </span>
-                      </td>
-                      <td className="py-3 text-velvet-cream-muted font-mono text-[11px]">{u.joined}</td>
-                      <td className="py-3 text-right">
-                        <button className="p-1 rounded text-velvet-cream-muted hover:text-white">
-                          <MoreHorizontal className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-[#8A6048]">No audit log entries recorded</div>
+            )}
           </div>
         </div>
       </div>

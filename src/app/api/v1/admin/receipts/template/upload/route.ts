@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { getStorageProvider } from "@/lib/storage/local-storage-provider";
+import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -112,6 +113,22 @@ export async function POST(req: NextRequest) {
     // 6. Save in private storage
     const storage = getStorageProvider();
     await storage.putObject(objectKey, buffer, file.type);
+
+    // Audit log template asset upload
+    await prisma.auditLog.create({
+      data: {
+        adminId: auth.user.id,
+        action: assetType === "background" ? "RECEIPT_BACKGROUND_UPDATED" : "RECEIPT_LOGO_UPDATED",
+        targetEntity: "ReceiptTemplate",
+        targetId: objectKey,
+        metadata: {
+          assetType,
+          objectKey,
+          sizeBytes: buffer.length,
+          contentType: file.type,
+        },
+      },
+    }).catch((err: unknown) => console.error("[AUDIT_LOG_ERROR]", err));
 
     return apiSuccess(
       {

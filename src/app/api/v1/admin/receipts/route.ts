@@ -97,6 +97,12 @@ export async function GET(req: NextRequest) {
               status: true,
               totalAmountPaise: true,
               buyerId: true,
+              items: {
+                take: 1,
+                select: {
+                  productTitle: true,
+                },
+              },
             },
           },
         },
@@ -111,14 +117,20 @@ export async function GET(req: NextRequest) {
       orderId: r.orderId,
       buyerName: r.buyerName,
       buyerEmail: r.buyerEmail,
+      productTitle: r.order?.items?.[0]?.productTitle || "Digital Product",
       amountPaidPaise: r.amountPaidPaise,
       totalAmountPaise: r.amountPaidPaise,
       amountFormatted: formatPaiseToINR(r.amountPaidPaise),
+      amountPaidFormatted: formatPaiseToINR(r.amountPaidPaise),
       currency: r.currency,
       paymentMethod: r.paymentMethod,
       paymentId: r.paymentId,
       templateVersion: r.templateVersion,
       issuedAt: r.issuedAt,
+      createdAt: r.issuedAt,
+      generatedDate: r.issuedAt,
+      receiptStatus: "GENERATED",
+      downloadUrl: `/api/v1/admin/receipts/${r.id}/download`,
     }));
 
     return apiSuccess(

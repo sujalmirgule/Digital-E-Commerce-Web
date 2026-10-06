@@ -1322,6 +1322,11 @@ async function main() {
     await prisma.product.deleteMany({ where: { id: product.id } });
     await prisma.category.deleteMany({ where: { id: category.id } });
     await prisma.sellerProfile.deleteMany({ where: { id: sellerProfile.id } });
+    await prisma.auditLog.deleteMany({
+      where: {
+        adminId: { in: [adminUser.id, inactiveAdmin.id] },
+      },
+    });
     await prisma.user.deleteMany({
       where: {
         id: { in: [buyerA.id, buyerB.id, sellerUser.id, adminUser.id, inactiveAdmin.id] },

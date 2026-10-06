@@ -100,6 +100,23 @@ export async function getPlatformOverview(): Promise<{
   recentOrders: RecentOrderSummary[];
   recentAuditLogs: RecentAuditLogItem[];
   systemHealth: SystemHealthData;
+  pendingModerationQueue?: Array<{
+    id: string;
+    title: string;
+    category: string;
+    creator: string;
+    pricePaise: number;
+    thumbnail: string;
+    createdAt: string;
+  }>;
+  pendingSellersQueue?: Array<{
+    id: string;
+    storeName: string;
+    name: string;
+    email: string;
+    createdAt: string;
+  }>;
+  [key: string]: any;
 }> {
   const startTime = Date.now();
 
@@ -125,6 +142,13 @@ export async function getPlatformOverview(): Promise<{
     financialAggregate,
     receiptsCount,
     reviewsCount,
+    totalPayments,
+    capturedPayments,
+    pendingPayments,
+    failedPayments,
+    downloadsCount,
+    pendingModerationProductsRaw,
+    pendingSellersRaw,
     recentOrdersRaw,
     recentAuditLogsRaw,
   ] = await Promise.all([
@@ -166,6 +190,37 @@ export async function getPlatformOverview(): Promise<{
     prisma.receipt.count(),
     prisma.review.count(),
 
+    // Payments
+    prisma.payment.count(),
+    prisma.payment.count({ where: { status: PaymentStatus.CAPTURED } }),
+    prisma.payment.count({ where: { status: PaymentStatus.CREATED } }),
+    prisma.payment.count({ where: { status: PaymentStatus.FAILED } }),
+
+    // Downloads
+    prisma.download.count(),
+
+    // Pending Moderation Queue
+    prisma.product.findMany({
+      where: { status: ProductStatus.PENDING_REVIEW },
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: {
+        category: { select: { name: true } },
+        seller: { select: { storeName: true } },
+        media: { where: { type: "THUMBNAIL" }, take: 1, select: { url: true } },
+      },
+    }),
+
+    // Pending Sellers Queue
+    prisma.sellerProfile.findMany({
+      where: { status: "PENDING" },
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { fullName: true, email: true } },
+      },
+    }),
+
     // Recent 5 orders
     prisma.order.findMany({
       orderBy: { createdAt: "desc" },
@@ -202,7 +257,7 @@ export async function getPlatformOverview(): Promise<{
   const platformCommissionPaise = financialAggregate._sum.platformFeePaise || 0;
   const sellerNetEarningsPaise = Math.max(0, grossTransactionValuePaise - platformCommissionPaise);
 
-  const stats: PlatformOverviewStats = {
+  const stats = {
     users: {
       total: totalUsers,
       buyers: buyersCount,
@@ -229,6 +284,15 @@ export async function getPlatformOverview(): Promise<{
       failed: failedOrders,
       cancelled: cancelledOrders,
     },
+    payments: {
+      total: totalPayments,
+      captured: capturedPayments,
+      pending: pendingPayments,
+      failed: failedPayments,
+    },
+    downloads: {
+      total: downloadsCount,
+    },
     financials: {
       grossTransactionValuePaise,
       grossVolumePaise: grossTransactionValuePaise,
@@ -241,6 +305,7 @@ export async function getPlatformOverview(): Promise<{
     receiptCount: receiptsCount,
     reviewsCount,
     reviewCount: reviewsCount,
+    downloadsCount,
   };
 
   const recentOrders: RecentOrderSummary[] = recentOrdersRaw.map((o) => ({
@@ -278,6 +343,22 @@ export async function getPlatformOverview(): Promise<{
     ...stats,
     recentOrders,
     recentAuditLogs,
+    pendingModerationQueue: pendingModerationProductsRaw.map((p) => ({
+      id: p.id,
+      title: p.title,
+      category: p.category?.name || "General",
+      creator: p.seller.storeName,
+      pricePaise: p.pricePaise,
+      thumbnail: p.media[0]?.url || "/products/product-1.svg",
+      createdAt: p.createdAt.toISOString(),
+    })),
+    pendingSellersQueue: pendingSellersRaw.map((s) => ({
+      id: s.id,
+      storeName: s.storeName,
+      name: s.user.fullName,
+      email: s.user.email,
+      createdAt: s.createdAt.toISOString(),
+    })),
     systemHealth,
   };
 }
@@ -747,6 +828,18 @@ export async function getAdminPayments(options?: {
           select: {
             buyerEmailSnapshot: true,
             buyerNameSnapshot: true,
+            items: {
+              take: 1,
+              select: {
+                productTitle: true,
+              },
+            },
+            receipt: {
+              select: {
+                id: true,
+                invoiceNumber: true,
+              },
+            },
           },
         },
       },
@@ -765,6 +858,11 @@ export async function getAdminPayments(options?: {
     paymentMethod: p.method,
     buyerEmail: p.order?.buyerEmailSnapshot || null,
     buyerName: p.order?.buyerNameSnapshot || null,
+    productTitle: p.order?.items?.[0]?.productTitle || "Digital Product",
+    receiptStatus: p.order?.receipt ? "GENERATED" : "NOT_GENERATED",
+    receiptId: p.order?.receipt?.id || null,
+    receiptInvoiceNumber: p.order?.receipt?.invoiceNumber || null,
+    capturedAt: p.verifiedAt?.toISOString() || null,
     verifiedAt: p.verifiedAt?.toISOString() || null,
     createdAt: p.createdAt.toISOString(),
   }));
@@ -777,6 +875,117 @@ export async function getAdminPayments(options?: {
       total,
       totalPages: Math.ceil(total / limit) || 1,
     },
+  };
+}
+
+/**
+ * Retrieves full payment transaction details for administrative auditing.
+ * Never exposes secrets (Razorpay secret, db credentials, JWT secrets, passwords).
+ */
+export async function getAdminPaymentDetail(paymentId: string) {
+  const p = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: {
+      order: {
+        include: {
+          buyer: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  title: true,
+                  slug: true,
+                },
+              },
+              seller: {
+                select: {
+                  id: true,
+                  storeName: true,
+                  storeSlug: true,
+                },
+              },
+            },
+          },
+          receipt: {
+            select: {
+              id: true,
+              invoiceNumber: true,
+              issuedAt: true,
+              templateVersion: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!p) return null;
+
+  return {
+    payment: {
+      id: p.id,
+      orderId: p.orderId,
+      amountPaise: p.amountPaise,
+      currency: p.currency,
+      status: p.status,
+      method: p.method,
+      razorpayPaymentId: p.razorpayPaymentId,
+      razorpayOrderId: p.razorpayOrderId,
+      bank: p.bank,
+      wallet: p.wallet,
+      vpa: p.vpa,
+      cardLast4: p.cardLast4,
+      cardNetwork: p.cardNetwork,
+      errorCode: p.errorCode,
+      errorDescription: p.errorDescription,
+      createdAt: p.createdAt.toISOString(),
+      capturedAt: p.verifiedAt?.toISOString() || null,
+      verifiedAt: p.verifiedAt?.toISOString() || null,
+    },
+    order: p.order
+      ? {
+          id: p.order.id,
+          status: p.order.status,
+          totalAmountPaise: p.order.totalAmountPaise,
+          platformFeePaise: p.order.platformFeePaise,
+          createdAt: p.order.createdAt.toISOString(),
+          paidAt: p.order.paidAt?.toISOString() || null,
+          items: p.order.items.map((i) => ({
+            id: i.id,
+            productId: i.productId,
+            productTitle: i.productTitle,
+            productSlug: i.product?.slug || null,
+            sellerStoreName: i.seller?.storeName || null,
+            pricePaise: i.pricePaise,
+            platformFeePaise: i.platformFeePaise,
+            sellerEarningsPaise: i.sellerEarningsPaise,
+            licenseType: i.licenseType,
+          })),
+        }
+      : null,
+    buyer: p.order
+      ? {
+          id: p.order.buyer?.id || null,
+          name: p.order.buyerNameSnapshot || p.order.buyer?.fullName || "Customer",
+          email: p.order.buyerEmailSnapshot || p.order.buyer?.email || "customer@example.com",
+        }
+      : null,
+    receipt: p.order?.receipt
+      ? {
+          id: p.order.receipt.id,
+          invoiceNumber: p.order.receipt.invoiceNumber,
+          issuedAt: p.order.receipt.issuedAt.toISOString(),
+          templateVersion: p.order.receipt.templateVersion,
+          downloadUrl: `/api/v1/admin/receipts/${p.order.receipt.id}/download`,
+        }
+      : null,
   };
 }
 

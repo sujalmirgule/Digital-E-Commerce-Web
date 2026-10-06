@@ -6,6 +6,7 @@ import {
   updateActiveReceiptTemplate,
 } from "@/lib/services/receipt";
 import { updateReceiptTemplateSchema } from "@/lib/validations/receipt";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,21 @@ export async function PUT(req: NextRequest) {
     }
 
     const updatedTemplate = await updateActiveReceiptTemplate(parseResult.data);
+
+    // Audit log template update
+    await prisma.auditLog.create({
+      data: {
+        adminId: auth.user.id,
+        action: "RECEIPT_TEMPLATE_UPDATED",
+        targetEntity: "ReceiptTemplate",
+        targetId: updatedTemplate.id,
+        metadata: {
+          version: updatedTemplate.version,
+          platformName: updatedTemplate.platformName,
+          primaryColor: updatedTemplate.primaryColor,
+        },
+      },
+    }).catch((err: unknown) => console.error("[AUDIT_LOG_ERROR]", err));
 
     return apiSuccess(
       { template: updatedTemplate },

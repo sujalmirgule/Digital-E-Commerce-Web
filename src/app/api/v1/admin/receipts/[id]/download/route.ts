@@ -55,6 +55,20 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
     const fileBytes = await fs.readFile(fullPath);
 
+    // Audit log admin download
+    await prisma.auditLog.create({
+      data: {
+        adminId: auth.user.id,
+        action: "RECEIPT_DOWNLOADED_ADMIN",
+        targetEntity: "Receipt",
+        targetId: receipt.id,
+        metadata: {
+          orderId: receipt.orderId,
+          invoiceNumber: receipt.invoiceNumber,
+        },
+      },
+    }).catch((err) => console.error("[AUDIT_LOG_ERROR]", err));
+
     return new NextResponse(new Uint8Array(fileBytes), {
       status: 200,
       headers: {

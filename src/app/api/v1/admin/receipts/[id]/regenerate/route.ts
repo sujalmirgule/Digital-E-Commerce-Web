@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/api-response";
 import { regenerateReceiptPDF } from "@/lib/services/receipt";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,21 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         result.status || 400
       );
     }
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        adminId: auth.user.id,
+        action: "RECEIPT_REGENERATED",
+        targetEntity: "Receipt",
+        targetId: result.receipt.id,
+        metadata: {
+          orderId: result.receipt.orderId,
+          invoiceNumber: result.receipt.invoiceNumber,
+          amountPaidPaise: result.receipt.amountPaidPaise,
+        },
+      },
+    }).catch((err: unknown) => console.error("[AUDIT_LOG_ERROR]", err));
 
     return apiSuccess(
       {
