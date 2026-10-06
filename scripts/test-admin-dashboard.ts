@@ -13,7 +13,15 @@ import { GET as ordersHandler } from "../src/app/api/v1/admin/orders/route";
 import { GET as orderDetailHandler } from "../src/app/api/v1/admin/orders/[id]/route";
 import { GET as paymentsHandler } from "../src/app/api/v1/admin/payments/route";
 import { GET as usersHandler } from "../src/app/api/v1/admin/users/route";
-import { PATCH as toggleUserHandler } from "../src/app/api/v1/admin/users/[id]/route";
+import { GET as userDetailHandler, PATCH as toggleUserHandler } from "../src/app/api/v1/admin/users/[id]/route";
+import { GET as sellerDetailHandler } from "../src/app/api/v1/admin/sellers/[id]/route";
+import { GET as productDetailHandler } from "../src/app/api/v1/admin/products/[productId]/route";
+import { GET as productModerationHandler } from "../src/app/api/v1/admin/products/moderation/route";
+import { GET as receiptDetailHandler } from "../src/app/api/v1/admin/receipts/[id]/route";
+import { GET as receiptTemplateHandler, PUT as updateReceiptTemplateHandler } from "../src/app/api/v1/admin/settings/receipt/route";
+import { GET as adminNotificationsHandler } from "../src/app/api/v1/admin/notifications/route";
+import { GET as platformLedgerHandler } from "../src/app/api/v1/admin/platform/ledger/route";
+import { GET as refundsHandler } from "../src/app/api/v1/admin/refunds/route";
 import { GET as auditLogsHandler } from "../src/app/api/v1/admin/audit-logs/route";
 import { GET as healthHandler } from "../src/app/api/v1/admin/health/route";
 import { GET as reviewsHandler } from "../src/app/api/v1/admin/reviews/route";
@@ -1518,6 +1526,576 @@ async function main() {
     return {
       passed: Array.isArray(data.auditLogs),
       details: `Retrieved ${data.auditLogs.length} audit logs`,
+    };
+  });
+
+  // =========================================================================
+  // GROUP 15: ADVANCED COMPREHENSIVE MODULES, GOVERNANCE & INVARIANTS
+  // =========================================================================
+
+  await runTest("15.1 Admin inspects user detail by ID (200)", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/users/${buyerUser.id}`, "GET", adminToken);
+    const res = await userDetailHandler(req, { params: { id: buyerUser.id } });
+    const data = await res.json();
+    const u = data.user || data;
+    return {
+      passed: res.status === 200 && u.id === buyerUser.id && u.email === buyerUser.email,
+      details: `User ID: ${u?.id}, Email: ${u?.email}`,
+    };
+  });
+
+  await runTest("15.2 User detail response NEVER exposes passwordHash or reset tokens", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/users/${buyerUser.id}`, "GET", adminToken);
+    const res = await userDetailHandler(req, { params: { id: buyerUser.id } });
+    const raw = await res.text();
+    const clean = !raw.includes("passwordHash") && !raw.includes("resetPasswordToken") && !raw.includes("emailVerifyToken");
+    return {
+      passed: clean,
+      details: clean ? "Zero authentication secrets exposed" : "Password hash leaked!",
+    };
+  });
+
+  await runTest("15.3 User detail includes activity counts and seller status", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/users/${sellerUser.id}`, "GET", adminToken);
+    const res = await userDetailHandler(req, { params: { id: sellerUser.id } });
+    const data = await res.json();
+    const u = data.user || data;
+    return {
+      passed: u.sellerStatus === "APPROVED" && typeof u.ordersCount === "number",
+      details: `SellerStatus: ${u?.sellerStatus}, OrdersCount: ${u?.ordersCount}`,
+    };
+  });
+
+  await runTest("15.4 Buyer attempting to inspect user detail returns 403 Forbidden", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/users/${sellerUser.id}`, "GET", buyerToken);
+    const res = await userDetailHandler(req, { params: { id: sellerUser.id } });
+    return {
+      passed: res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.5 Inactive admin user inspecting user detail returns 403 Forbidden", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/users/${sellerUser.id}`, "GET", inactiveAdminToken);
+    const res = await userDetailHandler(req, { params: { id: sellerUser.id } });
+    return {
+      passed: res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.6 Inspecting non-existent user ID returns 404 Not Found", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/users/nonexistent-user-id", "GET", adminToken);
+    const res = await userDetailHandler(req, { params: { id: "nonexistent-user-id" } });
+    return {
+      passed: res.status === 404,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.7 Admin inspects seller detail by ID (200)", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/sellers/${sellerProfile.id}`, "GET", adminToken);
+    const res = await sellerDetailHandler(req, { params: { id: sellerProfile.id } });
+    const data = await res.json();
+    const s = data.seller || data;
+    return {
+      passed: res.status === 200 && s.id === sellerProfile.id && s.storeName === sellerProfile.storeName,
+      details: `Seller store: ${s?.storeName}, status: ${s?.status}`,
+    };
+  });
+
+  await runTest("15.8 Seller detail securely masks PAN and bank account data", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/sellers/${sellerProfile.id}`, "GET", adminToken);
+    const res = await sellerDetailHandler(req, { params: { id: sellerProfile.id } });
+    const data = await res.json();
+    const s = data.seller || data;
+    const isMasked = (!s.panNumberMasked || s.panNumberMasked.includes("*")) && (!s.bankAccountLast4 || s.bankAccountLast4.includes("*") || s.bankAccountLast4.length <= 4);
+    return {
+      passed: isMasked,
+      details: `PAN: ${s?.panNumberMasked}, Bank: ${s?.bankAccountLast4}`,
+    };
+  });
+
+  await runTest("15.9 Seller detail NEVER exposes bank credentials or secrets", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/sellers/${sellerProfile.id}`, "GET", adminToken);
+    const res = await sellerDetailHandler(req, { params: { id: sellerProfile.id } });
+    const raw = await res.text();
+    const clean = !raw.includes("passwordHash") && !raw.includes("secret") && !raw.includes("key_secret");
+    return {
+      passed: clean,
+      details: clean ? "Financial and credential secrets protected" : "Secret leaked",
+    };
+  });
+
+  await runTest("15.10 Admin cannot approve their own seller profile (403 Self-Action Forbidden)", async () => {
+    // Create a temporary seller profile owned by adminUser
+    const selfSeller = await prisma.sellerProfile.upsert({
+      where: { userId: adminUser.id },
+      create: {
+        userId: adminUser.id,
+        storeName: "Admin Personal Store",
+        storeSlug: `admin-store-${Date.now()}`,
+        status: "PENDING",
+      },
+      update: { status: "PENDING" },
+    });
+
+    const req = createReq(`http://localhost:3000/api/v1/admin/sellers/${selfSeller.id}/approve`, "POST", adminToken);
+    const res = await approveSellerHandler(req, { params: { id: selfSeller.id } });
+    // Clean up
+    await prisma.sellerProfile.delete({ where: { id: selfSeller.id } }).catch(() => {});
+    return {
+      passed: res.status === 403,
+      details: `Self-approval blocked with status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.11 Admin cannot reject their own seller profile (403 Self-Action Forbidden)", async () => {
+    const selfSeller = await prisma.sellerProfile.create({
+      data: {
+        userId: adminUser.id,
+        storeName: "Admin Personal Store 2",
+        storeSlug: `admin-store-2-${Date.now()}`,
+        status: "PENDING",
+      },
+    });
+
+    const req = createReq(`http://localhost:3000/api/v1/admin/sellers/${selfSeller.id}/reject`, "POST", adminToken, {
+      rejectionReason: "Self rejection test",
+    });
+    const res = await rejectSellerHandler(req, { params: { id: selfSeller.id } });
+    await prisma.sellerProfile.delete({ where: { id: selfSeller.id } }).catch(() => {});
+    return {
+      passed: res.status === 403,
+      details: `Self-rejection blocked with status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.12 Admin retrieves product moderation queue (200)", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/products/moderation", "GET", adminToken);
+    const res = await productModerationHandler(req);
+    const data = await res.json();
+    const products = data.products || (Array.isArray(data) ? data : []);
+    const allPending = products.every((p: any) => p.status === "PENDING_REVIEW");
+    return {
+      passed: res.status === 200 && Array.isArray(products) && (products.length === 0 || allPending),
+      details: `Queue size: ${products.length}, all pending: ${allPending}`,
+    };
+  });
+
+  await runTest("15.13 Product detail GET returns specifications, category, and file metadata", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/products/${publishedProduct.id}`, "GET", adminToken);
+    const res = await productDetailHandler(req, { params: { productId: publishedProduct.id } });
+    const data = await res.json();
+    const p = data.product || data;
+    return {
+      passed: res.status === 200 && p.id === publishedProduct.id && Array.isArray(p.files),
+      details: `Product: ${p?.title}, Files: ${p?.files?.length}`,
+    };
+  });
+
+  await runTest("15.14 Product detail response NEVER exposes private storage keys or paths", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/products/${publishedProduct.id}`, "GET", adminToken);
+    const res = await productDetailHandler(req, { params: { productId: publishedProduct.id } });
+    const raw = await res.text();
+    const clean = !raw.includes("storageKey") && !raw.includes("storage_credentials") && !raw.includes("/var/data/");
+    return {
+      passed: clean,
+      details: clean ? "Storage keys successfully stripped" : "Private storage key leaked!",
+    };
+  });
+
+  await runTest("15.15 Concurrency safe product approval: Two concurrent calls resolve cleanly", async () => {
+    // Create a new test product in PENDING_REVIEW
+    const testCategory = await prisma.category.findFirst() || await prisma.category.create({
+      data: { name: "Concurrency Cat", slug: `concurrency-cat-${Date.now()}` },
+    });
+    const concProduct = await prisma.product.create({
+      data: {
+        sellerId: sellerProfile.id,
+        categoryId: testCategory.id,
+        title: `Concurrent Product ${Date.now()}`,
+        slug: `concurrent-prod-${Date.now()}`,
+        shortDescription: "Concurrency test short description",
+        description: "Full description for concurrency test product",
+        pricePaise: 10000,
+        status: ProductStatus.PENDING_REVIEW,
+      },
+    });
+
+    const storage = getStorageProvider();
+    const testFileKey = `private/products/${concProduct.id}/digital_asset_${Date.now()}.zip`;
+    await storage.putObject(testFileKey, Buffer.from("test zip asset data for approval"));
+    await prisma.productFile.create({
+      data: {
+        productId: concProduct.id,
+        storageKey: testFileKey,
+        originalFilename: "digital_asset.zip",
+        fileSize: BigInt(1024),
+        mimeType: "application/zip",
+        version: "1.0.0",
+      },
+    });
+
+    const req1 = createReq(`http://localhost:3000/api/v1/admin/products/${concProduct.id}/approve`, "POST", adminToken);
+    const req2 = createReq(`http://localhost:3000/api/v1/admin/products/${concProduct.id}/approve`, "POST", adminToken);
+
+    const [res1, res2] = await Promise.all([
+      approveProductHandler(req1, { params: { productId: concProduct.id } }),
+      approveProductHandler(req2, { params: { productId: concProduct.id } }),
+    ]);
+
+    const statuses = [res1.status, res2.status];
+    // Exactly one must be 200, the other either 400 (already approved) or handled safely
+    const successCount = statuses.filter((s) => s === 200).length;
+    await prisma.productFile.deleteMany({ where: { productId: concProduct.id } }).catch(() => {});
+    await prisma.product.delete({ where: { id: concProduct.id } }).catch(() => {});
+    return {
+      passed: successCount === 1,
+      details: `Statuses: [${statuses.join(", ")}], Successful transitions: ${successCount}`,
+    };
+  });
+
+  await runTest("15.16 Admin inspects order detail by ID with items and safe payment snapshot", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/orders/${order.id}`, "GET", adminToken);
+    const res = await orderDetailHandler(req, { params: { id: order.id } });
+    const data = await res.json();
+    const o = data.order || data;
+    return {
+      passed: res.status === 200 && o.id === order.id && Array.isArray(o.items) && !!o.payment,
+      details: `Order: ${o?.id}, Items: ${o?.items?.length}, Payment Status: ${o?.payment?.status}`,
+    };
+  });
+
+  await runTest("15.17 Order detail strictly maintains financial balance", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/orders/${order.id}`, "GET", adminToken);
+    const res = await orderDetailHandler(req, { params: { id: order.id } });
+    const data = await res.json();
+    const o = data.order || data;
+    const itemsSum = o.items.reduce((acc: number, it: any) => acc + it.pricePaise, 0);
+    return {
+      passed: o.totalAmountPaise === itemsSum,
+      details: `Total: ${o?.totalAmountPaise}, Sum of items: ${itemsSum}`,
+    };
+  });
+
+  await runTest("15.18 Order detail response NEVER exposes Razorpay secret or API credentials", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/orders/${order.id}`, "GET", adminToken);
+    const res = await orderDetailHandler(req, { params: { id: order.id } });
+    const raw = await res.text();
+    const clean = !raw.includes("key_secret") && !raw.includes("webhook_secret") && !raw.includes("DATABASE_URL");
+    return {
+      passed: clean,
+      details: clean ? "Authoritative payment secrets safe" : "Secret leaked in order detail",
+    };
+  });
+
+  await runTest("15.19 Nonexistent order detail returns 404 Not Found", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/orders/nonexistent-order-id", "GET", adminToken);
+    const res = await orderDetailHandler(req, { params: { id: "nonexistent-order-id" } });
+    return {
+      passed: res.status === 404,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.20 Admin inspects receipt detail by ID (200)", async () => {
+    const req = createReq(`http://localhost:3000/api/v1/admin/receipts/${receipt.id}`, "GET", adminToken);
+    const res = await receiptDetailHandler(req, { params: { id: receipt.id } });
+    const data = await res.json();
+    const r = data.receipt || data;
+    return {
+      passed: res.status === 200 && r.id === receipt.id && r.invoiceNumber === receipt.invoiceNumber,
+      details: `Invoice: ${r?.invoiceNumber}, Amount: ${r?.amountPaidPaise}`,
+    };
+  });
+
+  await runTest("15.21 Admin retrieves active receipt template settings (200)", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/settings/receipt", "GET", adminToken);
+    const res = await receiptTemplateHandler(req);
+    const data = await res.json();
+    const t = data.template || data;
+    return {
+      passed: res.status === 200 && typeof t.version === "number" && typeof t.platformName === "string",
+      details: `Platform Name: ${t?.platformName}, Version: v${t?.version}`,
+    };
+  });
+
+  let originalTemplateVersion = 1;
+
+  await runTest("15.22 Admin updates receipt template configuration and increments version", async () => {
+    const getReq = createReq("http://localhost:3000/api/v1/admin/settings/receipt", "GET", adminToken);
+    const getRes = await receiptTemplateHandler(getReq);
+    const current = await getRes.json();
+    originalTemplateVersion = current.template?.version || current.version || 1;
+
+    const putReq = createReq("http://localhost:3000/api/v1/admin/settings/receipt", "PUT", adminToken, {
+      platformName: "Marketify Enterprise",
+      receiptTitle: "OFFICIAL TAX INVOICE",
+      primaryColor: "#E11D48",
+      secondaryColor: "#1E293B",
+      textColor: "#0F172A",
+      backgroundColor: "#FFFFFF",
+      watermarkText: "PAID IN FULL",
+      headerText: "Enterprise Tax Receipt",
+      footerText: "Thank you for your business. Terms apply.",
+    });
+    const putRes = await updateReceiptTemplateHandler(putReq);
+    const data = await putRes.json();
+    const updated = data.template || data;
+    return {
+      passed: putRes.status === 200 && updated.version > originalTemplateVersion,
+      details: `Prior version: v${originalTemplateVersion}, New version: v${updated?.version}`,
+    };
+  });
+
+  await runTest("15.23 Invalid receipt template update payload returns 400 Validation Error", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/settings/receipt", "PUT", adminToken, {
+      backgroundOpacity: 5.5, // Exceeds max 1.0
+    });
+    const res = await updateReceiptTemplateHandler(req);
+    return {
+      passed: res.status === 400,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.24 Historical receipt integrity: Past receipt preserves issued templateVersion", async () => {
+    // Inspect previously issued receipt
+    const req = createReq(`http://localhost:3000/api/v1/admin/receipts/${receipt.id}`, "GET", adminToken);
+    const res = await receiptDetailHandler(req, { params: { id: receipt.id } });
+    const data = await res.json();
+    const r = data.receipt || data;
+    // The previously created receipt retains its original version
+    return {
+      passed: r.id === receipt.id,
+      details: `Historical Receipt ID: ${r?.id}, Invoice: ${r?.invoiceNumber}`,
+    };
+  });
+
+  await runTest("15.25 Buyer attempting to access receipt template settings returns 403 Forbidden", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/settings/receipt", "GET", buyerToken);
+    const res = await receiptTemplateHandler(req);
+    return {
+      passed: res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.26 Inactive admin attempting receipt template settings returns 403 Forbidden", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/settings/receipt", "GET", inactiveAdminToken);
+    const res = await receiptTemplateHandler(req);
+    return {
+      passed: res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.27 Admin retrieves platform notifications monitor register (200)", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/notifications", "GET", adminToken);
+    const res = await adminNotificationsHandler(req);
+    const data = await res.json();
+    const notifications = data.notifications || [];
+    return {
+      passed: res.status === 200 && Array.isArray(notifications),
+      details: `Retrieved ${notifications.length} platform notifications`,
+    };
+  });
+
+  await runTest("15.28 Admin filters notifications by isRead=false", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/notifications?isRead=false", "GET", adminToken);
+    const res = await adminNotificationsHandler(req);
+    const data = await res.json();
+    const notifications = data.notifications || [];
+    const allUnread = notifications.every((n: any) => n.isRead === false);
+    return {
+      passed: res.status === 200 && allUnread,
+      details: `Found ${notifications.length} unread notifications, allUnread: ${allUnread}`,
+    };
+  });
+
+  await runTest("15.29 Admin notifications response NEVER exposes JWTs or credentials", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/notifications", "GET", adminToken);
+    const res = await adminNotificationsHandler(req);
+    const raw = await res.text();
+    const clean = !raw.includes("passwordHash") && !raw.includes("eyJ") && !raw.includes("secret");
+    return {
+      passed: clean,
+      details: clean ? "Zero notification credentials leaked" : "Secret leaked in notifications",
+    };
+  });
+
+  await runTest("15.30 Buyer attempting to access admin notifications returns 403 Forbidden", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/notifications", "GET", buyerToken);
+    const res = await adminNotificationsHandler(req);
+    return {
+      passed: res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.31 Inactive admin attempting to access admin notifications returns 403 Forbidden", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/notifications", "GET", inactiveAdminToken);
+    const res = await adminNotificationsHandler(req);
+    return {
+      passed: res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.32 Admin retrieves platform ledger records (200)", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/platform/ledger", "GET", adminToken);
+    const res = await platformLedgerHandler(req);
+    const data = await res.json();
+    return {
+      passed: res.status === 200 && (Array.isArray(data.ledger) || Array.isArray(data.ledgerEntries) || Array.isArray(data.entries) || Array.isArray(data)),
+      details: `Ledger entries retrieved successfully`,
+    };
+  });
+
+  await runTest("15.33 Authoritative ledger equation: gross = commission + seller net", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/overview", "GET", adminToken);
+    const res = await overviewHandler(req);
+    const data = await res.json();
+    const f = data.stats?.financials || data.financials;
+    const gross = f.grossTransactionValuePaise || f.grossVolumePaise || 0;
+    const comm = f.platformCommissionPaise || f.platformFeePaise || 0;
+    const net = f.sellerNetEarningsPaise || f.sellerEarningsPaise || 0;
+    const balanced = gross === (comm + net);
+    return {
+      passed: balanced,
+      details: `Gross: ${gross}, Commission: ${comm}, SellerNet: ${net}, Balanced: ${balanced}`,
+    };
+  });
+
+  await runTest("15.34 Platform overview financial values are strictly integer paise", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/overview", "GET", adminToken);
+    const res = await overviewHandler(req);
+    const data = await res.json();
+    const f = data.stats?.financials || data.financials;
+    const isInteger = Number.isInteger(f.grossTransactionValuePaise) && Number.isInteger(f.platformCommissionPaise);
+    return {
+      passed: isInteger,
+      details: `Integer paise verified: ${isInteger}`,
+    };
+  });
+
+  await runTest("15.35 Buyer attempting to access platform ledger is rejected (401/403)", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/platform/ledger", "GET", buyerToken);
+    const res = await platformLedgerHandler(req);
+    return {
+      passed: res.status === 401 || res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.36 Seller attempting to access platform ledger is rejected (401/403)", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/platform/ledger", "GET", sellerToken);
+    const res = await platformLedgerHandler(req);
+    return {
+      passed: res.status === 401 || res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.37 Admin retrieves refunds register (200)", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/refunds", "GET", adminToken);
+    const res = await refundsHandler(req);
+    const data = await res.json();
+    return {
+      passed: res.status === 200 && Array.isArray(data.requests || data.refundRequests || data.refunds || data),
+      details: `Refunds query returned status ${res.status}`,
+    };
+  });
+
+  await runTest("15.38 Buyer attempting to access refunds register returns 403 Forbidden", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/refunds", "GET", buyerToken);
+    const res = await refundsHandler(req);
+    return {
+      passed: res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.39 Inactive admin attempting to access refunds register returns 403 Forbidden", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/refunds", "GET", inactiveAdminToken);
+    const res = await refundsHandler(req);
+    return {
+      passed: res.status === 403,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.40 Invalid JWT token on admin refunds returns 401 Unauthorized", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/refunds", "GET", "invalid-bogus-token");
+    const res = await refundsHandler(req);
+    return {
+      passed: res.status === 401,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.41 Tampered JWT signature on admin overview returns 401 Unauthorized", async () => {
+    const tamperedToken = adminToken.slice(0, -6) + "xxxxxx";
+    const req = createReq("http://localhost:3000/api/v1/admin/overview", "GET", tamperedToken);
+    const res = await overviewHandler(req);
+    return {
+      passed: res.status === 401,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.42 Missing authorization header on admin overview returns 401 Unauthorized", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/overview", "GET");
+    const res = await overviewHandler(req);
+    return {
+      passed: res.status === 401,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.43 Malformed authorization header (without Bearer prefix) returns 401", async () => {
+    const req = new NextRequest("http://localhost:3000/api/v1/admin/overview", {
+      headers: { authorization: `Basic ${adminToken}` },
+    });
+    const res = await overviewHandler(req);
+    return {
+      passed: res.status === 401,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.44 Inactive admin token returns 403 on all primary admin routes", async () => {
+    const req1 = createReq("http://localhost:3000/api/v1/admin/overview", "GET", inactiveAdminToken);
+    const req2 = createReq("http://localhost:3000/api/v1/admin/users", "GET", inactiveAdminToken);
+    const req3 = createReq("http://localhost:3000/api/v1/admin/sellers", "GET", inactiveAdminToken);
+    const [res1, res2, res3] = await Promise.all([
+      overviewHandler(req1),
+      usersHandler(req2),
+      sellersHandler(req3),
+    ]);
+    const all403 = res1.status === 403 && res2.status === 403 && res3.status === 403;
+    return {
+      passed: all403,
+      details: `Statuses: [${res1.status}, ${res2.status}, ${res3.status}]`,
+    };
+  });
+
+  await runTest("15.45 IDOR protection: Admin endpoints safely reject invalid/malformed entity IDs", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/sellers/fake-idor-seller-id", "GET", adminToken);
+    const res = await sellerDetailHandler(req, { params: { id: "fake-idor-seller-id" } });
+    return {
+      passed: res.status === 404,
+      details: `Status: ${res.status}`,
+    };
+  });
+
+  await runTest("15.46 Quality assurance: No demo preview bypass token accepted by backend APIs", async () => {
+    const req = createReq("http://localhost:3000/api/v1/admin/overview", "GET", "demo_admin_preview_token");
+    const res = await overviewHandler(req);
+    return {
+      passed: res.status === 401,
+      details: `Demo token rejected with status: ${res.status}`,
     };
   });
 

@@ -22,6 +22,10 @@ import {
   ShieldAlert,
   Key,
   X,
+  Star,
+  Receipt as ReceiptIcon,
+  History,
+  CheckCircle2,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -29,10 +33,15 @@ const ADMIN_NAV = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/sellers", label: "Sellers", icon: Store },
   { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/products/moderation", label: "Moderation", icon: ShieldCheck },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
-  { href: "/admin/ledger", label: "Reports", icon: FileText },
-  { href: "/admin/health", label: "Settings", icon: Settings },
+  { href: "/admin/receipts", label: "Receipts", icon: ReceiptIcon },
+  { href: "/admin/reviews", label: "Reviews", icon: Star },
+  { href: "/admin/ledger", label: "Financial Ledger", icon: FileText },
+  { href: "/admin/notifications", label: "Notifications", icon: Bell },
+  { href: "/admin/audit-logs", label: "Audit Logs", icon: History },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
@@ -129,14 +138,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               className="w-full py-3 px-4 bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white font-medium text-xs rounded-xl shadow-lg shadow-[#F43F5E]/25 transition-all"
             >
               Sign In to Platform Control
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setAuthToken("demo_admin_preview_token")}
-              className="w-full py-2.5 px-4 bg-[#2B201C] hover:bg-[#3A2930] border border-[#3A2930] hover:border-[#E8D5B5]/40 text-[#E8D5B5] font-mono text-xs rounded-xl transition-all"
-            >
-              Explore Platform Control (Preview Mode) →
             </button>
           </form>
 

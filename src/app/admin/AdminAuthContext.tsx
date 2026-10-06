@@ -45,18 +45,6 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch admin profile
   const fetchProfile = useCallback(async (jwtToken: string) => {
-    if (jwtToken === "demo_admin_preview_token") {
-      setUser({
-        id: "admin-demo-1",
-        fullName: "Platform Administrator",
-        email: "admin@marketplace.com",
-        role: "ADMIN",
-        isActive: true,
-      });
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);

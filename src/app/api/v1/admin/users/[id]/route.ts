@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/api-response";
-import { toggleUserStatus } from "@/lib/services/admin-dashboard";
+import { toggleUserStatus, getAdminUserDetail } from "@/lib/services/admin-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,53 @@ interface RouteParams {
   params: {
     id: string;
   };
+}
+
+/**
+ * GET /api/v1/admin/users/[id]
+ *
+ * Inspects detailed safe user account information.
+ * Protected: requires ADMIN role.
+ * Invariant: Never leaks passwordHash, JWT, reset tokens, or secrets.
+ */
+export async function GET(req: NextRequest, { params }: RouteParams) {
+  try {
+    const auth = await authenticateRequest(req);
+    if (!auth.user) {
+      return apiError(
+        auth.error?.code || "UNAUTHORIZED",
+        auth.error?.message || "Authentication is required",
+        auth.status || 401
+      );
+    }
+
+    if (auth.user.role !== "ADMIN") {
+      return apiError(
+        "FORBIDDEN",
+        "Administrative privileges are required to inspect user details",
+        403
+      );
+    }
+
+    const { id } = params;
+    if (!id) {
+      return apiError("INVALID_USER_ID", "User ID is required", 400);
+    }
+
+    const userDetail = await getAdminUserDetail(id);
+    if (!userDetail) {
+      return apiError("USER_NOT_FOUND", "User not found", 404);
+    }
+
+    return apiSuccess({ user: userDetail, ...userDetail }, "User details retrieved successfully", 200);
+  } catch (error) {
+    console.error("[ADMIN_USER_GET_ERROR]", error);
+    return apiError(
+      "INTERNAL_SERVER_ERROR",
+      "Failed to retrieve user details",
+      500
+    );
+  }
 }
 
 /**

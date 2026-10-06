@@ -368,7 +368,9 @@ export default function AdminOrdersPage() {
                   <tr key={order.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <div className="font-mono text-xs font-semibold text-white">
-                        #{order.id.slice(-8).toUpperCase()}
+                        <Link href={`/admin/orders/${order.id}`} className="hover:text-rose-400 hover:underline transition">
+                          #{order.id.slice(-8).toUpperCase()}
+                        </Link>
                       </div>
                       <div className="text-[11px] text-slate-500">{formatDate(order.createdAt)}</div>
                     </td>

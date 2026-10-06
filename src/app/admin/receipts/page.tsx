@@ -201,7 +201,9 @@ export default function AdminReceiptsPage() {
                 {receipts.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 font-mono font-semibold text-white whitespace-nowrap">
-                      {r.invoiceNumber}
+                      <Link href={`/admin/receipts/${r.id}`} className="hover:text-rose-400 hover:underline transition">
+                        {r.invoiceNumber}
+                      </Link>
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <Link

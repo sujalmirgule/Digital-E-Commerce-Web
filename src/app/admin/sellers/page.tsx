@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAdminAuth } from "../AdminAuthContext";
 import {
   Store,
@@ -351,7 +352,11 @@ export default function AdminSellersPage() {
                 {sellers.map((seller) => (
                   <tr key={seller.id} className="hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-white">{seller.storeName}</div>
+                      <div className="font-semibold text-white">
+                        <Link href={`/admin/sellers/${seller.id}`} className="hover:text-rose-400 hover:underline transition">
+                          {seller.storeName}
+                        </Link>
+                      </div>
                       <div className="font-mono text-[11px] text-slate-500 mt-0.5">
                         /{seller.storeSlug}
                       </div>

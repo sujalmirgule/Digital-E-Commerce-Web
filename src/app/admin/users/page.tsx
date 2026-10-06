@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAdminAuth } from "../AdminAuthContext";
 import {
   Users,
@@ -271,7 +272,9 @@ export default function AdminUsersPage() {
                     <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <div className="font-semibold text-white flex items-center gap-2">
-                          {u.fullName}
+                          <Link href={`/admin/users/${u.id}`} className="hover:text-rose-400 hover:underline transition">
+                            {u.fullName}
+                          </Link>
                           {isCurrent && (
                             <span className="text-[10px] px-1.5 py-0.2 bg-rose-500/20 text-rose-400 rounded font-normal">
                               You

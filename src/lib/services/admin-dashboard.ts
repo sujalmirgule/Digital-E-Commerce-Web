@@ -868,6 +868,74 @@ export async function getAdminUsers(options?: {
 }
 
 /**
+ * Retrieves safe detailed user information for administrator inspection.
+ * Strips passwordHash, tokens, secrets.
+ */
+export async function getAdminUserDetail(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      avatarUrl: true,
+      role: true,
+      isActive: true,
+      isEmailVerified: true,
+      createdAt: true,
+      updatedAt: true,
+      sellerProfile: {
+        select: {
+          id: true,
+          storeName: true,
+          storeSlug: true,
+          status: true,
+          rejectionReason: true,
+          createdAt: true,
+        },
+      },
+      _count: {
+        select: {
+          orders: true,
+          reviews: true,
+          downloads: true,
+          wishlists: true,
+        },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    avatarUrl: user.avatarUrl,
+    role: user.role,
+    isActive: user.isActive,
+    isEmailVerified: user.isEmailVerified,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    sellerProfile: user.sellerProfile
+      ? {
+          id: user.sellerProfile.id,
+          storeName: user.sellerProfile.storeName,
+          storeSlug: user.sellerProfile.storeSlug,
+          status: user.sellerProfile.status,
+          rejectionReason: user.sellerProfile.rejectionReason,
+          createdAt: user.sellerProfile.createdAt.toISOString(),
+        }
+      : null,
+    sellerStatus: user.sellerProfile?.status || null,
+    ordersCount: user._count.orders,
+    reviewsCount: user._count.reviews,
+    downloadsCount: user._count.downloads,
+    wishlistsCount: user._count.wishlists,
+  };
+}
+
+/**
  * Toggles user active state (activation / deactivation).
  * Self-deactivation by the authenticated admin is forbidden.
  */
