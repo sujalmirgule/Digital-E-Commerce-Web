@@ -26,7 +26,8 @@
     "test:auth-flow": "tsx scripts/test-public-auth-flow.ts",
     "test:all": "tsx scripts/run-all-test-suites.ts",
     "db:push": "prisma db push",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:seed:admin": "tsx scripts/seed-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.21.1",
