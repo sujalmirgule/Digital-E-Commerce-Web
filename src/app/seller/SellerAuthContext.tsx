@@ -152,11 +152,13 @@ export function SellerAuthProvider({ children }: { children: React.ReactNode }) 
     try {
       localStorage.removeItem("seller_token");
       localStorage.removeItem("token");
+      localStorage.removeItem("buyer_token");
+      document.cookie = "auth_token=; path=/; max-age=0;";
     } catch {}
     setToken(null);
     setUser(null);
     setProfile(null);
-    router.push("/test/login");
+    router.push("/login");
   };
 
   const setAuthToken = (newToken: string) => {

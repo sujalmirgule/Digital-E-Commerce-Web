@@ -41,18 +41,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  // Quick login state for unauthenticated viewers
-  const [emailInput, setEmailInput] = useState("");
-  const [passInput, setPassInput] = useState("");
-  const [loginSubmitting, setLoginSubmitting] = useState(false);
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput || !passInput) return;
-    setLoginSubmitting(true);
-    await login(emailInput, passInput);
-    setLoginSubmitting(false);
-  };
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [loading, user, router]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +54,15 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const displayName = user?.fullName ? user.fullName.split(" ")[0] : "Sujal";
+  const displayName = user?.fullName ? user.fullName.split(" ")[0] : "Account";
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-[#120A12] flex items-center justify-center text-xs text-[#BBAE9F]">
+        Loading your customer dashboard...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#120A12] text-[#F7EFE2] flex flex-col md:flex-row relative pb-16 md:pb-0">
@@ -233,46 +234,6 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-
-        {/* Unauthenticated Quick Login Banner if visitor */}
-        {!loading && !user && (
-          <div className="bg-[#211815] border-b border-[#3A2930] p-3.5 text-[#E8D5B5]">
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#F43F5E]" />
-                <span className="text-[#F7EFE2]">
-                  Viewing in preview mode as <strong className="text-[#E8D5B5]">Sujal</strong>.
-                </span>
-                <span className="text-[#BBAE9F] hidden md:inline">
-                  Sign in to load your personal purchased entitlements.
-                </span>
-              </div>
-              <form onSubmit={handleLoginSubmit} className="flex items-center gap-2 w-full sm:w-auto">
-                <input
-                  type="email"
-                  placeholder="buyer@example.com"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  className="px-3 py-1 text-xs rounded-full bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5]"
-                />
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={passInput}
-                  onChange={(e) => setPassInput(e.target.value)}
-                  className="px-3 py-1 text-xs rounded-full bg-[#1B101B] border border-[#3A2930] text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5]"
-                />
-                <button
-                  type="submit"
-                  disabled={loginSubmitting}
-                  className="px-3.5 py-1 rounded-full bg-[#F43F5E] hover:bg-[#FB7185] text-white font-medium text-xs transition-colors shrink-0"
-                >
-                  {loginSubmitting ? "..." : "Sign In"}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
 
         {/* Page Children */}
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1">

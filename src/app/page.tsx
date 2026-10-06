@@ -41,60 +41,10 @@ export default function HomePage() {
           fetch("/api/v1/categories").then((r) => (r.ok ? r.json() : null)),
         ]);
 
-        if (prodRes?.data?.products && prodRes.data.products.length > 0) {
+        if (prodRes?.data?.products && Array.isArray(prodRes.data.products)) {
           setProducts(prodRes.data.products);
         } else {
-          // Fallback curated showcase items matching the reference image if backend is empty
-          setProducts([
-            {
-              id: "p1",
-              title: "SaaS Dashboard UI Kit",
-              slug: "saas-dashboard-ui-kit",
-              shortDescription: "Clean, responsive Figma & React components for modern SaaS products.",
-              pricePaise: 179900,
-              ratingAvg: 4.8,
-              reviewsCount: 320,
-              seller: { storeName: "PixelForge" },
-              category: { name: "UI KIT" },
-              thumbnailUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80",
-            },
-            {
-              id: "p2",
-              title: "Notion Life Planner",
-              slug: "notion-life-planner",
-              shortDescription: "All-in-one Notion workspace for personal goals, finances and habits.",
-              pricePaise: 39900,
-              ratingAvg: 4.9,
-              reviewsCount: 1200,
-              seller: { storeName: "PlanStudio" },
-              category: { name: "TEMPLATE" },
-              thumbnailUrl: "https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=800&q=80",
-            },
-            {
-              id: "p3",
-              title: "The Freelance Guide",
-              slug: "the-freelance-guide",
-              shortDescription: "Contracts, client outreach scripts and pricing strategies for independent creators.",
-              pricePaise: 49900,
-              ratingAvg: 4.7,
-              reviewsCount: 890,
-              seller: { storeName: "Sarah Khan" },
-              category: { name: "EBOOK" },
-              thumbnailUrl: "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=800&q=80",
-            },
-            {
-              id: "p4",
-              title: "Resume Template Pack",
-              slug: "resume-template-pack",
-              shortDescription: "ATS-friendly, minimalist resumes tailored for engineers and product designers.",
-              pricePaise: 69900,
-              ratingAvg: 4.8,
-              reviewsCount: 640,
-              seller: { storeName: "DesignEra" },
-              category: { name: "TEMPLATE" },
-              thumbnailUrl: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=800&q=80",
-            },
-          ]);
+          setProducts([]);
         }
 
         if (catRes?.data?.categories && catRes.data.categories.length > 0) {
@@ -102,6 +52,7 @@ export default function HomePage() {
         }
       } catch (e) {
         console.error("Error loading marketplace data", e);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -152,7 +103,7 @@ export default function HomePage() {
                 </Link>
 
                 <Link
-                  href="/seller"
+                  href="/seller/signup"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full text-xs font-medium text-[#F7EFE2] hover:text-white bg-[#211815] hover:bg-[#2B201C] border border-[#3A2930] hover:border-[#E8D5B5]/50 transition-all duration-200"
                 >
                   <Store className="w-4 h-4 text-[#E8D5B5]" />
@@ -160,25 +111,25 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {/* Stats Row (Exact match to reference bottom-left) */}
+              {/* Platform Pillars (Authoritative marketplace guarantees) */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-[#3A2930]/80 w-full">
                 <div>
-                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">10K+</div>
-                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Digital Products</div>
+                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">100%</div>
+                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Instant Delivery</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">5K+</div>
-                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Creators</div>
+                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">Razorpay</div>
+                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Direct UPI & Card</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">50K+</div>
-                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Happy Customers</div>
+                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">90% Split</div>
+                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Creator Earnings</div>
                 </div>
                 <div>
                   <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2] flex items-center gap-1">
-                    4.9 <Star className="w-4 h-4 fill-[#F43F5E] text-[#F43F5E] inline" />
+                    Verified <Shield className="w-4 h-4 text-[#F43F5E] inline" />
                   </div>
-                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Average Rating</div>
+                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Moderated Files</div>
                 </div>
               </div>
             </div>
@@ -202,49 +153,95 @@ export default function HomePage() {
                 </span>
               </div>
 
-              {/* The Elevated Product Card Showcase (Matching Reference Image) */}
+              {/* The Elevated Product Card Showcase (Real Product or Editorial Card) */}
               <div className="relative z-10 w-full max-w-sm rounded-3xl border border-[#3A2930] bg-[#211815] p-5 shadow-2xl shadow-black/80 hover:border-[#E8D5B5]/60 transition-all duration-500">
-                {/* Product Preview Image with Bestseller Badge */}
-                <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#1B101B] border border-[#3A2930] mb-5">
-                  <img
-                    src="https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=800&q=80"
-                    alt="Notion Productivity Kit"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-3 left-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#F43F5E] text-white shadow-md">
-                      Bestseller
-                    </span>
-                  </div>
-                </div>
+                {products.length > 0 ? (
+                  <>
+                    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#1B101B] border border-[#3A2930] mb-5">
+                      {products[0].thumbnailUrl ? (
+                        <img
+                          src={products[0].thumbnailUrl}
+                          alt={products[0].title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#BBAE9F] font-mono text-xs">
+                          {products[0].title}
+                        </div>
+                      )}
+                      <div className="absolute top-3 left-3">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#F43F5E] text-white shadow-md">
+                          Featured
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Card Information */}
-                <div className="space-y-1 mb-4">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#E8D5B5]">
-                    Productivity Template
-                  </span>
-                  <h3 className="text-lg font-medium text-[#F7EFE2] font-editorial">
-                    Notion Productivity Kit
-                  </h3>
-                  <p className="text-xs text-[#BBAE9F] font-light">
-                    Organize, Plan, Achieve. Everything in one system.
-                  </p>
-                </div>
+                    <div className="space-y-1 mb-4">
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#E8D5B5]">
+                        {products[0].category?.name || "Digital Asset"}
+                      </span>
+                      <h3 className="text-lg font-medium text-[#F7EFE2] font-editorial line-clamp-1">
+                        {products[0].title}
+                      </h3>
+                      <p className="text-xs text-[#BBAE9F] font-light line-clamp-2">
+                        {products[0].shortDescription || "Curated digital product ready for immediate download."}
+                      </p>
+                    </div>
 
-                {/* Card Footer: Price & Rose Action Button */}
-                <div className="pt-4 border-t border-[#3A2930] flex items-center justify-between">
-                  <div>
-                    <span className="text-xl font-semibold text-[#F7EFE2]">₹1,499</span>
-                    <span className="text-[11px] text-[#BBAE9F] block">Instant Digital Access</span>
-                  </div>
+                    <div className="pt-4 border-t border-[#3A2930] flex items-center justify-between">
+                      <div>
+                        <span className="text-xl font-semibold text-[#F7EFE2]">
+                          ₹{(products[0].pricePaise / 100).toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-[11px] text-[#BBAE9F] block">Instant Digital Access</span>
+                      </div>
 
-                  <Link
-                    href="/products"
-                    className="w-10 h-10 rounded-full bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white flex items-center justify-center shadow-lg shadow-[#F43F5E]/30 transition-transform hover:scale-105"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </div>
+                      <Link
+                        href={`/products/${products[0].slug}`}
+                        className="w-10 h-10 rounded-full bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white flex items-center justify-center shadow-lg shadow-[#F43F5E]/30 transition-transform hover:scale-105"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#1B101B] border border-[#3A2930] mb-5 flex flex-col items-center justify-center p-6 text-center">
+                      <div className="w-12 h-12 rounded-2xl bg-[#211815] border border-[#3A2930] flex items-center justify-center text-[#F43F5E] mb-3">
+                        <Sparkles className="w-6 h-6" />
+                      </div>
+                      <span className="text-xs font-mono text-[#E8D5B5] uppercase tracking-wider">
+                        Creator Showcase
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 mb-4">
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#E8D5B5]">
+                        Curated Marketplace
+                      </span>
+                      <h3 className="text-lg font-medium text-[#F7EFE2] font-editorial">
+                        High-Impact Digital Assets
+                      </h3>
+                      <p className="text-xs text-[#BBAE9F] font-light">
+                        Publish your creations, retain 90% net earnings, and automate digital fulfillment.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-[#3A2930] flex items-center justify-between">
+                      <div>
+                        <span className="text-base font-medium text-[#F7EFE2]">Open Platform</span>
+                        <span className="text-[11px] text-[#BBAE9F] block">Zero listing fees</span>
+                      </div>
+
+                      <Link
+                        href="/seller/signup"
+                        className="w-10 h-10 rounded-full bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white flex items-center justify-center shadow-lg shadow-[#F43F5E]/30 transition-transform hover:scale-105"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -269,7 +266,6 @@ export default function HomePage() {
             <span className="text-[#F43F5E]">✦</span>
             <span>AND MORE</span>
             <span className="text-[#F43F5E]">✦</span>
-            {/* Repeated for smooth loop */}
             <span>DIGITAL PRODUCTS</span>
             <span className="text-[#F43F5E]">✦</span>
             <span>TEMPLATES</span>
@@ -308,11 +304,38 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.slice(0, 4).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-64 rounded-3xl bg-[#211815] animate-pulse border border-[#3A2930]" />
+              ))}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="rounded-3xl border border-[#3A2930] bg-[#211815] p-12 text-center max-w-2xl mx-auto space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#1B101B] border border-[#3A2930] flex items-center justify-center text-[#E8D5B5] mx-auto">
+                <Package className="w-6 h-6 text-[#E8D5B5]" />
+              </div>
+              <h3 className="text-xl font-editorial text-[#F7EFE2]">No products published yet</h3>
+              <p className="text-xs text-[#BBAE9F] max-w-md mx-auto leading-relaxed">
+                The marketplace catalog is ready for creators. Be among the first to publish your digital templates, boilerplates, or guides.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/seller/signup"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] transition-colors"
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span>Become a Seller</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {products.slice(0, 4).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ============================================================ */}
@@ -490,7 +513,7 @@ export default function HomePage() {
               </div>
 
               <Link
-                href="/seller"
+                href="/seller/signup"
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] shadow-lg shadow-[#F43F5E]/30 transition-all"
               >
                 <span>Start Selling</span>
@@ -498,7 +521,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Right Column (7 Cols - Real Studio Dashboard Mockup) */}
+            {/* Right Column (7 Cols - Creator Platform Preview) */}
             <div className="lg:col-span-7">
               <div className="rounded-3xl border border-[#3A2930] bg-[#211815] p-6 sm:p-8 shadow-2xl shadow-black/80">
                 {/* Header */}
@@ -512,35 +535,35 @@ export default function HomePage() {
                     </h3>
                   </div>
                   <span className="px-3 py-1 rounded-full text-[10px] font-mono bg-[#86A989]/10 text-[#86A989] border border-[#86A989]/30">
-                    Active Storefront
+                    Live Workspace
                   </span>
                 </div>
 
-                {/* 4 Metric Cards */}
+                {/* 4 Metric Cards (Platform architectural guarantees) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-6">
                   <div className="p-3.5 rounded-xl bg-[#1B101B] border border-[#3A2930]">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Revenue</span>
-                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">₹48,250</span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Creator Split</span>
+                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">90% Net</span>
                   </div>
                   <div className="p-3.5 rounded-xl bg-[#1B101B] border border-[#3A2930]">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Orders</span>
-                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">128</span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Platform Fee</span>
+                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">10%</span>
                   </div>
                   <div className="p-3.5 rounded-xl bg-[#1B101B] border border-[#3A2930]">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Products</span>
-                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">12</span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Delivery</span>
+                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">Instant</span>
                   </div>
                   <div className="p-3.5 rounded-xl bg-[#1B101B] border border-[#3A2930]">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Pending</span>
-                    <span className="text-lg font-semibold text-[#E8D5B5] mt-1 block">2</span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Settlement</span>
+                    <span className="text-lg font-semibold text-[#E8D5B5] mt-1 block">Direct Bank</span>
                   </div>
                 </div>
 
-                {/* Revenue Curve Preview (Rose SVG Chart) */}
+                {/* Performance Preview */}
                 <div className="p-4 rounded-2xl bg-[#1B101B] border border-[#3A2930]">
                   <div className="flex items-center justify-between text-xs text-[#BBAE9F] mb-3">
-                    <span>Revenue Trend (Last 30 Days)</span>
-                    <span className="text-[#F43F5E] font-mono font-medium">+24.8% growth</span>
+                    <span>Creator Growth Trajectory</span>
+                    <span className="text-[#F43F5E] font-mono font-medium">Real-Time Ledger</span>
                   </div>
                   <div className="h-28 w-full relative">
                     <svg className="w-full h-full overflow-visible" viewBox="0 0 400 100" preserveAspectRatio="none">
@@ -640,7 +663,7 @@ export default function HomePage() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                href="/seller"
+                href="/seller/signup"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-xs font-medium text-[#F7EFE2] hover:text-white bg-[#1B101B] hover:bg-[#2B201C] border border-[#3A2930] hover:border-[#E8D5B5]/50 transition-all"
               >
                 <Store className="w-4 h-4 text-[#E8D5B5]" />

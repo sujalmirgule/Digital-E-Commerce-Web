@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -42,6 +42,18 @@ function SellerShell({ children }: { children: React.ReactNode }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  useEffect(() => {
+    if (!loading) {
+      if (!token) {
+        router.push("/login");
+      } else if (user && !user.hasSellerProfile) {
+        router.push("/seller/signup");
+      } else if (user && user.sellerStatus !== "APPROVED" && pathname !== "/seller") {
+        router.push("/seller/application-status");
+      }
+    }
+  }, [loading, token, user, pathname, router]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -49,7 +61,15 @@ function SellerShell({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const displayName = profile?.storeName || user?.fullName?.split(" ")[0] || "Sujal";
+  const displayName = profile?.storeName || user?.fullName?.split(" ")[0] || "Creator";
+
+  if (loading || !token) {
+    return (
+      <div className="min-h-screen bg-[#120A12] flex items-center justify-center text-xs text-[#BBAE9F]">
+        Authenticating creator workspace...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#120A12] text-[#F7EFE2] flex flex-col md:flex-row relative pb-16 md:pb-0">

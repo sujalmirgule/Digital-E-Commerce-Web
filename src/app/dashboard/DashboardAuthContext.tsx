@@ -121,10 +121,13 @@ export function DashboardAuthProvider({ children }: { children: React.ReactNode 
     try {
       localStorage.removeItem("buyer_token");
       localStorage.removeItem("token");
+      localStorage.removeItem("seller_token");
+      localStorage.removeItem("admin_token");
+      document.cookie = "auth_token=; path=/; max-age=0;";
     } catch {}
     setToken(null);
     setUser(null);
-    router.push("/test/login");
+    router.push("/login");
   };
 
   const setAuthToken = (newToken: string) => {

@@ -34,11 +34,12 @@ const testSuites = [
   "scripts/test-advanced-search.ts",
   "scripts/test-production-hardening.ts",
   "scripts/test-final-production-audit.ts",
+  "scripts/test-public-auth-flow.ts",
 ];
 
 async function main() {
   console.log("=================================================================");
-  console.log("    RUNNING ALL 23 TEST SUITES ACROSS MARKETPLACE FEATURES      ");
+  console.log("    RUNNING ALL 24 TEST SUITES ACROSS MARKETPLACE FEATURES      ");
   console.log("=================================================================\n");
 
   const results: SuiteResult[] = [];

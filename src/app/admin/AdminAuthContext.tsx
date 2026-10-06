@@ -106,8 +106,15 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const receivedToken = data.data.token;
+      const loggedUser = data.data.user;
+
+      if (loggedUser?.role !== "ADMIN") {
+        throw new Error("Access denied: Administrative privileges required");
+      }
+
       localStorage.setItem("admin_token", receivedToken);
       localStorage.setItem("token", receivedToken);
+      document.cookie = `auth_token=${receivedToken}; path=/; max-age=604800; SameSite=Lax`;
       setToken(receivedToken);
 
       await fetchProfile(receivedToken);
@@ -122,9 +129,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem("admin_token");
     localStorage.removeItem("token");
+    document.cookie = "auth_token=; path=/; max-age=0;";
     setToken(null);
     setUser(null);
-    router.push("/test/login");
+    router.push("/admin/login");
   };
 
   const setAuthToken = (newToken: string) => {

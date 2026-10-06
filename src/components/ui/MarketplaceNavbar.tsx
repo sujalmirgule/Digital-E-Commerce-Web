@@ -11,14 +11,27 @@ import {
   User,
   ShoppingBag,
   Sparkles,
+  Store,
+  LogOut,
+  Shield,
 } from "lucide-react";
+
+interface CurrentUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  hasSellerProfile: boolean;
+  sellerStatus: string | null;
+}
 
 export function MarketplaceNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [session, setSession] = useState<{ token: string; role?: string } | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -30,20 +43,48 @@ export function MarketplaceNavbar() {
   }, []);
 
   useEffect(() => {
-    try {
-      const token =
-        localStorage.getItem("token") ||
-        localStorage.getItem("admin_token") ||
-        localStorage.getItem("seller_token");
-      if (token) {
-        setSession({ token });
-      } else {
-        setSession(null);
+    async function checkAuth() {
+      try {
+        const token =
+          localStorage.getItem("token") ||
+          localStorage.getItem("buyer_token") ||
+          localStorage.getItem("seller_token") ||
+          localStorage.getItem("admin_token");
+
+        if (!token) {
+          setUser(null);
+          setLoadingUser(false);
+          return;
+        }
+
+        const res = await fetch("/api/v1/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.data?.user || data.data);
+        } else {
+          setUser(null);
+        }
+      } catch {
+        setUser(null);
+      } finally {
+        setLoadingUser(false);
       }
-    } catch {
-      // localStorage fallback
     }
+    checkAuth();
   }, [pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("buyer_token");
+    localStorage.removeItem("seller_token");
+    localStorage.removeItem("admin_token");
+    document.cookie = "auth_token=; path=/; max-age=0;";
+    setUser(null);
+    router.push("/login");
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,10 +95,30 @@ export function MarketplaceNavbar() {
     }
   };
 
+  const getDashboardLink = () => {
+    if (!user) return "/dashboard";
+    if (user.role === "ADMIN") return "/admin";
+    if (user.hasSellerProfile) {
+      if (user.sellerStatus === "APPROVED") return "/seller";
+      return "/seller/application-status";
+    }
+    return "/dashboard";
+  };
+
+  const getDashboardLabel = () => {
+    if (!user) return "Dashboard";
+    if (user.role === "ADMIN") return "Admin Control";
+    if (user.hasSellerProfile) {
+      if (user.sellerStatus === "APPROVED") return "Seller Studio";
+      return "Seller Status";
+    }
+    return "Buyer Hub";
+  };
+
   const navLinks = [
     { label: "Marketplace", href: "/products" },
     { label: "Categories", href: "/products#categories" },
-    { label: "Creators", href: "/seller" },
+    { label: "Become a Seller", href: "/seller/signup" },
     { label: "How it works", href: "/#how-it-works" },
   ];
 
@@ -102,7 +163,7 @@ export function MarketplaceNavbar() {
             })}
           </nav>
 
-          {/* Search Bar (as shown in reference header) */}
+          {/* Search Bar */}
           <form
             onSubmit={handleSearchSubmit}
             className="hidden md:flex items-center flex-1 max-w-xs relative"
@@ -119,25 +180,49 @@ export function MarketplaceNavbar() {
 
           {/* Right Action Buttons */}
           <div className="hidden sm:flex items-center gap-2.5 shrink-0">
-            {session ? (
-              <Link
-                href="/dashboard"
-                className="text-xs tracking-wide text-[#E8D5B5] hover:text-[#F7EFE2] px-3.5 py-1.5 rounded-full border border-[#3A2930] hover:border-[#E8D5B5]/50 bg-[#211815]/60 transition-all flex items-center gap-1.5"
-              >
-                <User className="w-3.5 h-3.5 text-[#F43F5E]" />
-                <span>Dashboard</span>
-              </Link>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href={getDashboardLink()}
+                  className="text-xs tracking-wide text-[#E8D5B5] hover:text-[#F7EFE2] px-3.5 py-1.5 rounded-full border border-[#3A2930] hover:border-[#E8D5B5]/50 bg-[#211815]/60 transition-all flex items-center gap-1.5"
+                >
+                  {user.role === "ADMIN" ? (
+                    <Shield className="w-3.5 h-3.5 text-[#F43F5E]" />
+                  ) : user.hasSellerProfile ? (
+                    <Store className="w-3.5 h-3.5 text-[#F43F5E]" />
+                  ) : (
+                    <User className="w-3.5 h-3.5 text-[#F43F5E]" />
+                  )}
+                  <span>{getDashboardLabel()}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="text-xs tracking-wide text-[#BBAE9F] hover:text-rose-400 px-2.5 py-1.5 rounded-full border border-[#3A2930] hover:border-rose-500/30 bg-[#211815]/60 transition-all flex items-center gap-1"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden xl:inline">Logout</span>
+                </button>
+              </div>
             ) : (
-              <Link
-                href="/login"
-                className="text-xs tracking-wide text-[#BBAE9F] hover:text-[#F7EFE2] px-3.5 py-1.5 rounded-full transition-colors"
-              >
-                Log In
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="text-xs tracking-wide text-[#BBAE9F] hover:text-[#F7EFE2] px-3.5 py-1.5 rounded-full transition-colors"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/signup"
+                  className="text-xs tracking-wide text-[#E8D5B5] hover:text-[#F7EFE2] px-3.5 py-1.5 rounded-full border border-[#3A2930] hover:border-[#E8D5B5]/40 bg-[#211815]/80 transition-colors"
+                >
+                  Customer Sign Up
+                </Link>
+              </div>
             )}
 
             <Link
-              href="/seller"
+              href="/seller/signup"
               className="inline-flex items-center justify-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] shadow-[0_0_18px_rgba(244,63,94,0.35)] transition-all duration-200"
             >
               <span>Start Selling</span>
@@ -182,28 +267,49 @@ export function MarketplaceNavbar() {
               </Link>
             ))}
             <div className="h-px bg-[#3A2930] my-2" />
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-center text-xs tracking-wide text-[#BBAE9F] hover:text-[#F7EFE2] py-2 rounded-lg border border-[#3A2930] bg-[#211815]"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/seller"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-center text-xs font-medium text-white py-2 rounded-lg bg-[#F43F5E] hover:bg-[#FB7185] shadow-md shadow-[#F43F5E]/20"
-              >
-                Start Selling
-              </Link>
-            </div>
+            {user ? (
+              <div className="flex flex-col gap-2">
+                <Link
+                  href={getDashboardLink()}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-center text-xs tracking-wide text-[#E8D5B5] hover:text-white py-2 rounded-lg border border-[#3A2930] bg-[#211815]"
+                >
+                  {getDashboardLabel()} →
+                </Link>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="text-center text-xs tracking-wide text-rose-400 py-2 rounded-lg border border-rose-500/20 bg-rose-500/10"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-center text-xs tracking-wide text-[#BBAE9F] hover:text-[#F7EFE2] py-2 rounded-lg border border-[#3A2930] bg-[#211815]"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-center text-xs tracking-wide text-[#E8D5B5] hover:text-[#F7EFE2] py-2 rounded-lg border border-[#3A2930] bg-[#211815]"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
             <Link
-              href="/dashboard"
+              href="/seller/signup"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-center text-xs tracking-wide text-[#E8D5B5] hover:text-white py-2 mt-1"
+              className="text-center text-xs font-medium text-white py-2 mt-2 rounded-lg bg-[#F43F5E] hover:bg-[#FB7185] shadow-md shadow-[#F43F5E]/20"
             >
-              Buyer Dashboard →
+              Become a Seller
             </Link>
           </div>
         </div>

@@ -51,29 +51,12 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [tokenModalOpen, setTokenModalOpen] = useState(false);
-  const [manualToken, setManualToken] = useState("");
-  const [loginEmail, setLoginEmail] = useState("admin@marketplace.com");
-  const [loginPassword, setLoginPassword] = useState("Admin@123456");
-  const [loginError, setLoginError] = useState<string | null>(null);
 
-  const handleManualTokenSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (manualToken.trim()) {
-      setAuthToken(manualToken.trim());
-      setTokenModalOpen(false);
+  React.useEffect(() => {
+    if (!loading && (!token || !isAdmin)) {
+      router.push("/admin/login");
     }
-  };
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-    try {
-      await login(loginEmail, loginPassword);
-    } catch (err: unknown) {
-      setLoginError(err instanceof Error ? err.message : "Authentication failed");
-    }
-  };
+  }, [loading, token, isAdmin, router]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,123 +65,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // If not logged in as admin yet, provide immediate access options (login or demo mode)
-  if (!token || !isAdmin) {
+  // If not logged in as admin yet, show loading while redirecting to /admin/login
+  if (loading || !token || !isAdmin) {
     return (
-      <div className="min-h-screen bg-[#120A12] text-[#F7EFE2] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-[#211815] border border-[#3A2930] rounded-3xl p-8 space-y-6 shadow-2xl shadow-black/80">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-[#1B101B] border border-[#3A2930] flex items-center justify-center text-[#F43F5E] mx-auto shadow-md shadow-[#F43F5E]/20">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <h1 className="text-2xl font-serif text-[#F7EFE2]">Platform Control</h1>
-            <p className="text-xs text-[#BBAE9F] font-light">
-              Restricted access. Verified marketplace administrators only.
-            </p>
-          </div>
-
-          {(error || loginError) && (
-            <div className="p-3 bg-rose-950/40 border border-rose-900/50 rounded-xl text-rose-300 text-xs flex items-start gap-2">
-              <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{loginError || error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1.5">
-                Admin Email
-              </label>
-              <input
-                type="email"
-                required
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                placeholder="admin@marketplace.com"
-                className="w-full text-xs px-4 py-2.5 bg-[#1B101B] border border-[#3A2930] rounded-xl text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] transition font-light"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-mono uppercase text-[#BBAE9F] mb-1.5">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full text-xs px-4 py-2.5 bg-[#1B101B] border border-[#3A2930] rounded-xl text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] transition font-light"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 px-4 bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white font-medium text-xs rounded-xl shadow-lg shadow-[#F43F5E]/25 transition-all"
-            >
-              Sign In to Platform Control
-            </button>
-          </form>
-
-          {/* Quick Token Paste Section */}
-          <div className="pt-4 border-t border-[#3A2930]/70 flex items-center justify-between text-xs">
-            <button
-              type="button"
-              onClick={() => setTokenModalOpen(true)}
-              className="text-xs text-[#BBAE9F] hover:text-[#F7EFE2] inline-flex items-center gap-1.5 transition-colors"
-            >
-              <Key className="w-3.5 h-3.5" />
-              <span>Direct Bearer Token</span>
-            </button>
-            <Link href="/" className="text-xs text-[#E8D5B5] hover:underline">
-              Return to Public Store →
-            </Link>
-          </div>
-
-          {/* Modal for manual JWT entry */}
-          {tokenModalOpen && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-[#211815] border border-[#3A2930] rounded-2xl p-6 max-w-md w-full space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-serif text-[#F7EFE2] text-sm">Enter Admin Bearer Token</h3>
-                  <button
-                    onClick={() => setTokenModalOpen(false)}
-                    className="text-[#BBAE9F] hover:text-[#F7EFE2]"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <p className="text-xs text-[#BBAE9F]">
-                  Paste a valid JWT token signed with ADMIN role privileges.
-                </p>
-                <textarea
-                  rows={4}
-                  value={manualToken}
-                  onChange={(e) => setManualToken(e.target.value)}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  className="w-full text-xs font-mono p-3 bg-[#1B101B] border border-[#3A2930] rounded-xl text-[#F7EFE2] outline-none focus:border-[#E8D5B5]"
-                />
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setTokenModalOpen(false)}
-                    className="px-3 py-1.5 text-xs text-[#BBAE9F] hover:text-[#F7EFE2]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleManualTokenSubmit}
-                    className="px-4 py-1.5 text-xs bg-[#F43F5E] hover:bg-[#FB7185] text-white font-medium rounded-lg"
-                  >
-                    Set Token
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="min-h-screen bg-[#120A12] text-[#F7EFE2] flex items-center justify-center p-4 text-xs text-[#BBAE9F]">
+        Verifying administrator authorization...
       </div>
     );
   }

@@ -13,7 +13,9 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreed, setAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +23,16 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match. Please verify your password confirmation.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
 
     if (!agreed) {
       setError("Please agree to the marketplace terms and conditions to proceed.");
@@ -34,8 +46,8 @@ export default function SignupPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
+          fullName: name.trim(),
+          email: email.trim().toLowerCase(),
           password,
         }),
       });
@@ -56,6 +68,7 @@ export default function SignupPage() {
       const token = data.data?.token;
       if (token) {
         localStorage.setItem("token", token);
+        localStorage.setItem("buyer_token", token);
         document.cookie = `auth_token=${token}; path=/; max-age=604800; SameSite=Lax`;
         router.push("/dashboard");
       } else {
@@ -78,13 +91,13 @@ export default function SignupPage() {
             {/* Header */}
             <div className="text-center mb-8">
               <span className="text-[11px] font-mono tracking-[0.25em] text-[#E8D5B5] uppercase font-medium block mb-2">
-                Join Marketify
+                Customer Registration
               </span>
               <h1 className="text-3xl font-light text-[#F7EFE2] font-editorial tracking-tight">
                 Create Account
               </h1>
               <p className="text-xs text-[#BBAE9F] mt-2 font-light">
-                Discover digital tools or start publishing your own creator assets.
+                Sign up as a customer to purchase and access digital products.
               </p>
             </div>
 
@@ -130,7 +143,7 @@ export default function SignupPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="creator@example.com"
+                    placeholder="buyer@example.com"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#3A2930] bg-[#1B101B] text-sm text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] focus:ring-1 focus:ring-[#E8D5B5]/20 transition-all font-light"
                   />
                 </div>
@@ -161,8 +174,34 @@ export default function SignupPage() {
                   </button>
                 </div>
                 <span className="text-[10px] text-[#BBAE9F]/70 mt-1 block">
-                  Password must be at least 8 chars with uppercase, lowercase, number, and symbol.
+                  Must include uppercase, lowercase, number, and special character.
                 </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-[#E8D5B5] uppercase tracking-wider mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#BBAE9F]">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#3A2930] bg-[#1B101B] text-sm text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] focus:ring-1 focus:ring-[#E8D5B5]/20 transition-all font-light"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#BBAE9F] hover:text-[#F7EFE2] transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-start gap-2 pt-2">
@@ -174,7 +213,7 @@ export default function SignupPage() {
                   className="mt-0.5 rounded border-[#3A2930] bg-[#1B101B] text-[#F43F5E] focus:ring-[#F43F5E]"
                 />
                 <label htmlFor="agree" className="text-xs text-[#BBAE9F] font-light leading-snug">
-                  I agree to the marketplace terms of service and creator code of conduct.
+                  I agree to the marketplace terms of service and customer conduct policy.
                 </label>
               </div>
 
@@ -187,7 +226,7 @@ export default function SignupPage() {
                   <span>Creating Account...</span>
                 ) : (
                   <>
-                    <span>Create Free Account</span>
+                    <span>Create Customer Account</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -195,7 +234,7 @@ export default function SignupPage() {
             </form>
 
             {/* Footer */}
-            <div className="mt-8 pt-6 border-t border-[#3A2930] text-center">
+            <div className="mt-8 pt-6 border-t border-[#3A2930] text-center space-y-2">
               <p className="text-xs text-[#BBAE9F] font-light">
                 Already registered?{" "}
                 <Link
@@ -203,6 +242,15 @@ export default function SignupPage() {
                   className="text-[#E8D5B5] hover:text-[#F43F5E] font-medium transition-colors"
                 >
                   Sign in here →
+                </Link>
+              </p>
+              <p className="text-xs text-[#BBAE9F] font-light">
+                Want to sell creator products?{" "}
+                <Link
+                  href="/seller/signup"
+                  className="text-[#F43F5E] hover:underline font-medium"
+                >
+                  Apply as a Seller →
                 </Link>
               </p>
             </div>

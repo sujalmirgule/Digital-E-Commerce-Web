@@ -23,6 +23,8 @@
     "test:search": "tsx scripts/test-advanced-search.ts",
     "test:hardening": "tsx scripts/test-production-hardening.ts",
     "test:final-audit": "tsx scripts/test-final-production-audit.ts",
+    "test:auth-flow": "tsx scripts/test-public-auth-flow.ts",
+    "test:all": "tsx scripts/run-all-test-suites.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate"
   },

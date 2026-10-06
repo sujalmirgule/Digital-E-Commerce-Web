@@ -72,7 +72,7 @@ export function MarketplaceFooter() {
             </h4>
             <ul className="flex flex-col gap-2.5 text-xs">
               <li>
-                <Link href="/seller" className="hover:text-[#F7EFE2] transition-colors">
+                <Link href="/seller/signup" className="hover:text-[#F7EFE2] transition-colors">
                   Become a Seller
                 </Link>
               </li>
@@ -116,7 +116,7 @@ export function MarketplaceFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="hover:text-[#F43F5E] transition-colors flex items-center gap-1">
+                <Link href="/admin/login" className="hover:text-[#F43F5E] transition-colors flex items-center gap-1">
                   <span>Platform Control</span>
                   <ArrowUpRight className="w-3 h-3 text-[#BBAE9F]" />
                 </Link>
