@@ -1,259 +1,168 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Lock, Mail, User, ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react";
+import {
+  ShoppingBag,
+  Store,
+  ArrowRight,
+  Download,
+  BookOpen,
+  DollarSign,
+  TrendingUp,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { SpatialBackground } from "@/components/ui/SpatialBackground";
 import { MarketplaceNavbar } from "@/components/ui/MarketplaceNavbar";
 import { MarketplaceFooter } from "@/components/ui/MarketplaceFooter";
 
-export default function SignupPage() {
-  const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreed, setAgreed] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match. Please verify your password confirmation.");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
-      return;
-    }
-
-    if (!agreed) {
-      setError("Please agree to the marketplace terms and conditions to proceed.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/v1/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: name.trim(),
-          email: email.trim().toLowerCase(),
-          password,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        const errorMsg =
-          data.error?.message ||
-          (Array.isArray(data.error?.details) ? data.error.details.map((d: any) => d.message).join(", ") : null) ||
-          data.error ||
-          "Registration failed. Please try again.";
-        setError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      const token = data.data?.token;
-      if (token) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("buyer_token", token);
-        document.cookie = `auth_token=${token}; path=/; max-age=604800; SameSite=Lax`;
-        router.push("/dashboard");
-      } else {
-        router.push("/login?registered=true");
-      }
-    } catch (err: any) {
-      setError(err.message || "An unexpected network error occurred.");
-      setLoading(false);
-    }
-  };
-
+export default function SignupSelectionPage() {
   return (
     <SpatialBackground>
       <MarketplaceNavbar />
 
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-28 relative">
-        <div className="w-full max-w-md">
-          {/* Card Container */}
-          <div className="relative rounded-3xl border border-[#3A2930] bg-[#211815] p-8 shadow-2xl shadow-black/80 overflow-hidden">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <span className="text-[11px] font-mono tracking-[0.25em] text-[#E8D5B5] uppercase font-medium block mb-2">
-                Customer Registration
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+        <div className="w-full max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8BFA5] bg-[#F3E9DD] mb-3">
+              <Sparkles className="w-3.5 h-3.5 text-[#B42318]" />
+              <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
+                Get Started with Folio
               </span>
-              <h1 className="text-3xl font-light text-[#F7EFE2] font-editorial tracking-tight">
-                Create Account
-              </h1>
-              <p className="text-xs text-[#BBAE9F] mt-2 font-light">
-                Sign up as a customer to purchase and access digital products.
-              </p>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-serif font-medium text-[#111111] tracking-tight">
+              How would you like to use the marketplace?
+            </h1>
+            <p className="text-sm text-[#6B4632] mt-3 font-light max-w-lg mx-auto">
+              Choose your path to join our community. Both accounts are part of the same unified digital commerce platform.
+            </p>
+          </div>
+
+          {/* Two-Choice Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+            {/* CHOICE 1: BUY AS A CUSTOMER */}
+            <div className="group rounded-2xl border-2 border-[#E6DBD1] hover:border-[#3B2418] bg-[#FFFFFF] p-8 sm:p-10 transition-all duration-200 flex flex-col justify-between shadow-sm hover:shadow-md">
+              <div>
+                <div className="w-12 h-12 rounded-xl border border-[#D8BFA5] bg-[#F3E9DD] flex items-center justify-center text-[#3B2418] mb-6 group-hover:bg-[#3B2418] group-hover:text-[#FFFFFF] transition-colors">
+                  <ShoppingBag className="w-6 h-6" />
+                </div>
+
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-mono uppercase tracking-widest text-[#B42318] font-bold">
+                    For Individuals & Teams
+                  </span>
+                </div>
+
+                <h2 className="text-2xl font-serif font-medium text-[#111111] mb-3">
+                  Buy as a Customer
+                </h2>
+
+                <p className="text-xs text-[#6B4632] font-light leading-relaxed mb-6">
+                  Access premium developer kits, design resources, and digital templates to accelerate your projects.
+                </p>
+
+                {/* Feature Checklist */}
+                <ul className="space-y-3 pt-4 border-t border-[#E6DBD1] text-xs text-[#3B2418]">
+                  <li className="flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#B42318]" />
+                    <span>Discover verified digital products</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#B42318]" />
+                    <span>Buy products with instant Razorpay checkout</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#B42318]" />
+                    <span>Access your personal digital library</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#B42318]" />
+                    <span>Download purchases and tax invoices anytime</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-[#E6DBD1]">
+                <Link
+                  href="/signup/customer"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-colors shadow-sm"
+                >
+                  <span>Create Customer Account</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             </div>
 
-            {/* Error Alert */}
-            {error && (
-              <div className="mb-6 p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex items-center gap-2.5">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-                <span className="leading-snug">{error}</span>
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* CHOICE 2: SELL DIGITAL PRODUCTS */}
+            <div className="group rounded-2xl border-2 border-[#D8BFA5] hover:border-[#111111] bg-[#FAF8F4] p-8 sm:p-10 transition-all duration-200 flex flex-col justify-between shadow-sm hover:shadow-md">
               <div>
-                <label className="block text-xs font-mono text-[#E8D5B5] uppercase tracking-wider mb-2">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#BBAE9F]">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Sujal Mirgule"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#3A2930] bg-[#1B101B] text-sm text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] focus:ring-1 focus:ring-[#E8D5B5]/20 transition-all font-light"
-                  />
+                <div className="w-12 h-12 rounded-xl border border-[#3B2418] bg-[#3B2418] flex items-center justify-center text-[#FAF8F4] mb-6">
+                  <Store className="w-6 h-6" />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-mono text-[#E8D5B5] uppercase tracking-wider mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#BBAE9F]">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="buyer@example.com"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#3A2930] bg-[#1B101B] text-sm text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] focus:ring-1 focus:ring-[#E8D5B5]/20 transition-all font-light"
-                  />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-mono uppercase tracking-widest text-[#3B2418] font-bold">
+                    For Creators & Publishers
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#E6DBD1] text-[#3B2418] font-semibold">
+                    Admin Moderated
+                  </span>
                 </div>
+
+                <h2 className="text-2xl font-serif font-medium text-[#111111] mb-3">
+                  Sell Digital Products
+                </h2>
+
+                <p className="text-xs text-[#6B4632] font-light leading-relaxed mb-6">
+                  Turn your code, designs, and templates into products. Build a storefront and monetize your work.
+                </p>
+
+                {/* Feature Checklist */}
+                <ul className="space-y-3 pt-4 border-t border-[#D8BFA5] text-xs text-[#3B2418]">
+                  <li className="flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                    <span>Create and package digital products</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                    <span>Reach an engaged community of builders</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                    <span>Manage sales with itemized ledger calculations</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#111111]" />
+                    <span>Track 90% net earnings with direct bank payouts</span>
+                  </li>
+                </ul>
               </div>
 
-              <div>
-                <label className="block text-xs font-mono text-[#E8D5B5] uppercase tracking-wider mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#BBAE9F]">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="At least 8 characters"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#3A2930] bg-[#1B101B] text-sm text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] focus:ring-1 focus:ring-[#E8D5B5]/20 transition-all font-light"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#BBAE9F] hover:text-[#F7EFE2] transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <span className="text-[10px] text-[#BBAE9F]/70 mt-1 block">
-                  Must include uppercase, lowercase, number, and special character.
-                </span>
+              <div className="mt-8 pt-6 border-t border-[#D8BFA5]">
+                <Link
+                  href="/signup/seller"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FAF8F4] bg-[#3B2418] hover:bg-[#111111] transition-colors shadow-sm"
+                >
+                  <span>Become a Seller</span>
+                  <ArrowRight className="w-4 h-4 text-[#D8BFA5]" />
+                </Link>
               </div>
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-xs font-mono text-[#E8D5B5] uppercase tracking-wider mb-2">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#BBAE9F]">
-                    <Lock className="w-4 h-4" />
-                  </div>
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your password"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#3A2930] bg-[#1B101B] text-sm text-[#F7EFE2] placeholder-[#BBAE9F]/40 focus:outline-none focus:border-[#E8D5B5] focus:ring-1 focus:ring-[#E8D5B5]/20 transition-all font-light"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[#BBAE9F] hover:text-[#F7EFE2] transition-colors"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="agree"
-                  checked={agreed}
-                  onChange={(e) => setAgreed(e.target.checked)}
-                  className="mt-0.5 rounded border-[#3A2930] bg-[#1B101B] text-[#F43F5E] focus:ring-[#F43F5E]"
-                />
-                <label htmlFor="agree" className="text-xs text-[#BBAE9F] font-light leading-snug">
-                  I agree to the marketplace terms of service and customer conduct policy.
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full mt-4 inline-flex items-center justify-center gap-2 py-3 px-4 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] shadow-lg shadow-[#F43F5E]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          {/* Footer note */}
+          <div className="mt-10 text-center">
+            <p className="text-xs text-[#6B4632] font-light">
+              Already have an account?{" "}
+              <Link
+                href="/login"
+                className="text-[#111111] hover:text-[#B42318] font-medium underline underline-offset-2 transition-colors"
               >
-                {loading ? (
-                  <span>Creating Account...</span>
-                ) : (
-                  <>
-                    <span>Create Customer Account</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            {/* Footer */}
-            <div className="mt-8 pt-6 border-t border-[#3A2930] text-center space-y-2">
-              <p className="text-xs text-[#BBAE9F] font-light">
-                Already registered?{" "}
-                <Link
-                  href="/login"
-                  className="text-[#E8D5B5] hover:text-[#F43F5E] font-medium transition-colors"
-                >
-                  Sign in here →
-                </Link>
-              </p>
-              <p className="text-xs text-[#BBAE9F] font-light">
-                Want to sell creator products?{" "}
-                <Link
-                  href="/seller/signup"
-                  className="text-[#F43F5E] hover:underline font-medium"
-                >
-                  Apply as a Seller →
-                </Link>
-              </p>
-            </div>
+                Sign in here →
+              </Link>
+            </p>
           </div>
         </div>
       </main>
@@ -262,4 +171,3 @@ export default function SignupPage() {
     </SpatialBackground>
   );
 }
-

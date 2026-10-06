@@ -9,583 +9,637 @@ import {
   Download,
   CheckCircle2,
   Layers,
-  ShoppingBag,
   Store,
-  DollarSign,
-  Star,
   Sparkles,
   TrendingUp,
   Package,
   Clock,
   Compass,
+  Code,
+  Palette,
+  LayoutTemplate,
+  Briefcase,
+  GraduationCap,
+  Camera,
+  Star,
+  Check,
 } from "lucide-react";
 import { SpatialBackground } from "@/components/ui/SpatialBackground";
 import { MarketplaceNavbar } from "@/components/ui/MarketplaceNavbar";
 import { MarketplaceFooter } from "@/components/ui/MarketplaceFooter";
-import { ProductCarousel } from "@/components/ui/ProductCarousel";
 import { ProductCard, ProductCardData } from "@/components/ui/ProductCard";
-import { TestimonialSlider } from "@/components/ui/TestimonialSlider";
 import { FAQAccordion } from "@/components/ui/FAQAccordion";
+import { MARKETPLACE_CATEGORIES } from "@/lib/categories";
+import { getProducts, DEMO_PRODUCTS } from "@/lib/demo/products";
 
 export default function HomePage() {
   const [products, setProducts] = useState<ProductCardData[]>([]);
-  const [categories, setCategories] = useState<{ id: string; name: string; slug: string; productCount?: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<string>("all");
 
-  // Fetch real marketplace products & categories
   useEffect(() => {
-    async function loadData() {
+    async function loadProducts() {
       try {
-        const [prodRes, catRes] = await Promise.all([
-          fetch("/api/v1/products?limit=12").then((r) => (r.ok ? r.json() : null)),
-          fetch("/api/v1/categories").then((r) => (r.ok ? r.json() : null)),
-        ]);
-
-        if (prodRes?.data?.products && Array.isArray(prodRes.data.products)) {
-          setProducts(prodRes.data.products);
-        } else {
-          setProducts([]);
-        }
-
-        if (catRes?.data?.categories && catRes.data.categories.length > 0) {
-          setCategories(catRes.data.categories);
-        }
-      } catch (e) {
-        console.error("Error loading marketplace data", e);
+        const result = await getProducts({ limit: 12, allowDemoFallback: true });
+        setProducts(result.products as ProductCardData[]);
+      } catch (err) {
+        console.error("Failed to load products for homepage:", err);
         setProducts([]);
       } finally {
         setLoading(false);
       }
     }
-    loadData();
+    loadProducts();
   }, []);
+
+  const featuredProducts = products.slice(0, 4);
+  const trendingProducts = products.slice(4, 8);
+  const recentProducts = products.slice(8, 12);
+
+  // Filter products by selected category for discovery preview
+  const previewProducts = activeCategory === "all"
+    ? products.slice(0, 6)
+    : products.filter(
+        (p) =>
+          p.category?.slug?.toLowerCase() === activeCategory.toLowerCase() ||
+          p.category?.name?.toLowerCase() === activeCategory.toLowerCase()
+      ).slice(0, 6);
 
   return (
     <SpatialBackground>
+      {/* 1. HEADER */}
       <MarketplaceNavbar />
 
-      <main className="flex-1 w-full pt-20">
+      <main className="flex-1 w-full pt-16 sm:pt-20">
         {/* ============================================================ */}
-        {/* SECTION 01: HERO (EXACT REFERENCE COMPOSITION)               */}
+        {/* 2 & 3. HERO SECTION + EDITORIAL VISUAL COMPOSITION           */}
         {/* ============================================================ */}
-        <section className="relative min-h-[85vh] flex items-center px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center w-full">
+        <section className="relative px-4 sm:px-6 lg:px-8 pt-12 pb-20 md:pt-20 md:pb-28 max-w-7xl mx-auto border-b border-[#E6DBD1]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* Left Content (7 Cols) */}
             <div className="lg:col-span-7 flex flex-col items-start text-left">
               {/* Eyebrow */}
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#3A2930] bg-[#211815]/80 mb-6 backdrop-blur-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E] animate-pulse" />
-                <span className="text-[11px] font-mono tracking-[0.25em] text-[#E8D5B5] uppercase font-medium">
-                  The Digital Marketplace
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#D8BFA5] bg-[#F3E9DD] mb-6 shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#B42318]" />
+                <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
+                  DIGITAL MARKETPLACE
                 </span>
               </div>
 
-              {/* Large Editorial Headline */}
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-light tracking-tight text-[#F7EFE2] font-editorial leading-[1.08] mb-6">
-                Good digital products <br />
-                <span className="italic text-[#E8D5B5]">deserve to be discovered.</span>
+              {/* Large Headline */}
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-serif font-medium tracking-tight text-[#111111] leading-[1.08] mb-6">
+                Discover digital products made to move your{" "}
+                <span className="italic text-[#6B4632]">work forward.</span>
               </h1>
 
               {/* Supporting Copy */}
-              <p className="text-sm sm:text-base text-[#BBAE9F] font-light max-w-xl leading-relaxed mb-8">
-                Discover thoughtfully made digital products, or turn your own work into something people can use.
-                Curated boilerplates, UI systems, planners, and creator guides.
+              <p className="text-base sm:text-lg text-[#6B4632] font-light max-w-xl leading-relaxed mb-8">
+                Explore templates, design assets, development resources, learning products, and other digital goods created by independent sellers.
               </p>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3.5 mb-14 w-full sm:w-auto">
+              {/* Primary Marketplace CTAs */}
+              <div className="flex flex-wrap items-center gap-3.5 mb-12 w-full sm:w-auto">
                 <Link
-                  href="/products"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] shadow-[0_0_25px_rgba(244,63,94,0.4)] transition-all duration-200"
+                  href="/discover"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-colors shadow-sm"
                 >
-                  <span>Explore Marketplace</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Discover Products</span>
+                  <ArrowRight className="w-4 h-4 text-[#FAF8F4]" />
                 </Link>
 
                 <Link
-                  href="/seller/signup"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full text-xs font-medium text-[#F7EFE2] hover:text-white bg-[#211815] hover:bg-[#2B201C] border border-[#3A2930] hover:border-[#E8D5B5]/50 transition-all duration-200"
+                  href="/signup/seller"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#3B2418] hover:text-[#111111] bg-[#FFFFFF] hover:bg-[#F3E9DD] border border-[#D8BFA5] transition-colors shadow-2xs"
                 >
-                  <Store className="w-4 h-4 text-[#E8D5B5]" />
-                  <span>Become a Seller</span>
+                  <Store className="w-4 h-4 text-[#6B4632]" />
+                  <span>Start Selling</span>
                 </Link>
               </div>
 
-              {/* Platform Pillars (Authoritative marketplace guarantees) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-[#3A2930]/80 w-full">
+              {/* Platform Pillars */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-8 border-t border-[#E6DBD1] w-full">
                 <div>
-                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">100%</div>
-                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Instant Delivery</div>
-                </div>
-                <div>
-                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">Razorpay</div>
-                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Direct UPI & Card</div>
-                </div>
-                <div>
-                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2]">90% Split</div>
-                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Creator Earnings</div>
-                </div>
-                <div>
-                  <div className="text-2xl sm:text-3xl font-light font-editorial text-[#F7EFE2] flex items-center gap-1">
-                    Verified <Shield className="w-4 h-4 text-[#F43F5E] inline" />
+                  <div className="text-2xl sm:text-3xl font-serif font-semibold text-[#111111]">100%</div>
+                  <div className="text-[11px] text-[#6B4632] uppercase tracking-wider font-mono mt-0.5">
+                    Instant Access
                   </div>
-                  <div className="text-[11px] text-[#BBAE9F] uppercase tracking-wider font-mono mt-0.5">Moderated Files</div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-serif font-semibold text-[#111111]">Razorpay</div>
+                  <div className="text-[11px] text-[#6B4632] uppercase tracking-wider font-mono mt-0.5">
+                    UPI, QR & Cards
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-serif font-semibold text-[#111111]">90% Net</div>
+                  <div className="text-[11px] text-[#6B4632] uppercase tracking-wider font-mono mt-0.5">
+                    Creator Split
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl sm:text-3xl font-serif font-semibold text-[#111111] flex items-center gap-1.5">
+                    <span>Verified</span>
+                    <Shield className="w-4 h-4 text-[#B42318]" />
+                  </div>
+                  <div className="text-[11px] text-[#6B4632] uppercase tracking-wider font-mono mt-0.5">
+                    Moderated Files
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Hero Visual Showcase (5 Cols - Editorial Mockup) */}
+            {/* Right Hero Visual Composition (5 Cols) */}
             <div className="lg:col-span-5 relative flex justify-center lg:justify-end">
-              {/* Decorative Background Glow and Script */}
-              <div className="absolute -top-10 -right-10 w-72 h-72 bg-[#F43F5E]/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-[#E8D5B5]/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="w-full max-w-md relative">
+                {/* Decorative background shadow cards */}
+                <div className="absolute -top-3 -right-3 w-full h-full rounded-2xl border border-[#D8BFA5] bg-[#F3E9DD]/80 -rotate-2 pointer-events-none" />
+                <div className="absolute -bottom-3 -left-3 w-full h-full rounded-2xl border border-[#E6DBD1] bg-[#E6DBD1]/40 rotate-1 pointer-events-none" />
 
-              {/* Script Typography in Background */}
-              <div className="absolute -right-4 top-1/2 -translate-y-1/2 select-none pointer-events-none text-right z-0">
-                <span className="font-editorial italic text-5xl sm:text-6xl text-[#E8D5B5]/10 leading-tight block">
-                  Create.
-                </span>
-                <span className="font-editorial italic text-5xl sm:text-6xl text-[#F43F5E]/15 leading-tight block">
-                  Sell.
-                </span>
-                <span className="font-editorial italic text-5xl sm:text-6xl text-[#E8D5B5]/10 leading-tight block">
-                  Grow.
-                </span>
-              </div>
-
-              {/* The Elevated Product Card Showcase (Real Product or Editorial Card) */}
-              <div className="relative z-10 w-full max-w-sm rounded-3xl border border-[#3A2930] bg-[#211815] p-5 shadow-2xl shadow-black/80 hover:border-[#E8D5B5]/60 transition-all duration-500">
-                {products.length > 0 ? (
-                  <>
-                    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#1B101B] border border-[#3A2930] mb-5">
-                      {products[0].thumbnailUrl ? (
-                        <img
-                          src={products[0].thumbnailUrl}
-                          alt={products[0].title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#BBAE9F] font-mono text-xs">
-                          {products[0].title}
-                        </div>
-                      )}
-                      <div className="absolute top-3 left-3">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#F43F5E] text-white shadow-md">
-                          Featured
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 mb-4">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#E8D5B5]">
-                        {products[0].category?.name || "Digital Asset"}
+                {/* Primary Spotlight Product Composition */}
+                <div className="relative rounded-2xl border border-[#3B2418] bg-[#FFFFFF] p-6 shadow-md shadow-black/5">
+                  <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E6DBD1]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#111111]" />
+                      <span className="text-xs font-mono uppercase tracking-widest text-[#6B4632] font-semibold">
+                        Curated Showcase
                       </span>
-                      <h3 className="text-lg font-medium text-[#F7EFE2] font-editorial line-clamp-1">
-                        {products[0].title}
-                      </h3>
-                      <p className="text-xs text-[#BBAE9F] font-light line-clamp-2">
-                        {products[0].shortDescription || "Curated digital product ready for immediate download."}
-                      </p>
+                    </div>
+                    <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-[#FAF8F4] text-[#B42318] border border-[#E6DBD1] font-semibold">
+                      Featured Today
+                    </span>
+                  </div>
+
+                  {/* Visual Product Mockup Canvas */}
+                  <div className="rounded-xl overflow-hidden border border-[#E6DBD1] bg-gradient-to-br from-[#F3E9DD] via-[#FAF8F4] to-[#D8BFA5] p-6 mb-5 text-center">
+                    <div className="inline-flex p-3 rounded-xl bg-[#FFFFFF] border border-[#D8BFA5] shadow-xs mb-3">
+                      <LayoutTemplate className="w-8 h-8 text-[#3B2418]" />
+                    </div>
+                    <h3 className="font-serif text-lg font-medium text-[#111111]">
+                      Figma Editorial Systems & Assets
+                    </h3>
+                    <p className="text-xs text-[#6B4632] mt-1 font-light">
+                      200+ auto-layout components, grids, typography presets & palettes.
+                    </p>
+                  </div>
+
+                  {/* Metadata Row */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#6B4632] font-mono">Creator</span>
+                      <span className="text-[#111111] font-medium font-mono">Studio Monolith</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#6B4632] font-mono">License</span>
+                      <span className="text-[#111111] font-mono">Commercial Use</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#6B4632] font-mono">Customer Rating</span>
+                      <div className="flex items-center gap-1 font-mono text-[#111111]">
+                        <Star className="w-3.5 h-3.5 fill-[#B42318] text-[#B42318]" />
+                        <span className="font-bold">4.95 / 5.0</span>
+                      </div>
                     </div>
 
-                    <div className="pt-4 border-t border-[#3A2930] flex items-center justify-between">
+                    <div className="pt-4 border-t border-[#E6DBD1] flex items-center justify-between">
                       <div>
-                        <span className="text-xl font-semibold text-[#F7EFE2]">
-                          ₹{(products[0].pricePaise / 100).toLocaleString("en-IN")}
-                        </span>
-                        <span className="text-[11px] text-[#BBAE9F] block">Instant Digital Access</span>
+                        <span className="text-[10px] text-[#6B4632] uppercase font-mono block">Instant Download</span>
+                        <span className="text-xl font-mono font-bold text-[#111111]">₹2,900</span>
                       </div>
-
                       <Link
-                        href={`/products/${products[0].slug}`}
-                        className="w-10 h-10 rounded-full bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white flex items-center justify-center shadow-lg shadow-[#F43F5E]/30 transition-transform hover:scale-105"
+                        href="/discover"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-mono uppercase font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-colors"
                       >
-                        <ArrowRight className="w-4 h-4" />
+                        <span>Explore Catalog</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#1B101B] border border-[#3A2930] mb-5 flex flex-col items-center justify-center p-6 text-center">
-                      <div className="w-12 h-12 rounded-2xl bg-[#211815] border border-[#3A2930] flex items-center justify-center text-[#F43F5E] mb-3">
-                        <Sparkles className="w-6 h-6" />
-                      </div>
-                      <span className="text-xs font-mono text-[#E8D5B5] uppercase tracking-wider">
-                        Creator Showcase
-                      </span>
-                    </div>
-
-                    <div className="space-y-1 mb-4">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#E8D5B5]">
-                        Curated Marketplace
-                      </span>
-                      <h3 className="text-lg font-medium text-[#F7EFE2] font-editorial">
-                        High-Impact Digital Assets
-                      </h3>
-                      <p className="text-xs text-[#BBAE9F] font-light">
-                        Publish your creations, retain 90% net earnings, and automate digital fulfillment.
-                      </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-[#3A2930] flex items-center justify-between">
-                      <div>
-                        <span className="text-base font-medium text-[#F7EFE2]">Open Platform</span>
-                        <span className="text-[11px] text-[#BBAE9F] block">Zero listing fees</span>
-                      </div>
-
-                      <Link
-                        href="/seller/signup"
-                        className="w-10 h-10 rounded-full bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] text-white flex items-center justify-center shadow-lg shadow-[#F43F5E]/30 transition-transform hover:scale-105"
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    </div>
-                  </>
-                )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* ============================================================ */}
-        {/* SECTION 02: CONTINUOUS HORIZONTAL TICKER                     */}
+        {/* 4 & 5. PRODUCT DISCOVERY PREVIEW                             */}
         {/* ============================================================ */}
-        <section className="w-full border-y border-[#3A2930] bg-[#1B101B]/90 overflow-hidden py-3.5">
-          <div className="animate-ticker flex items-center gap-8 text-[11px] font-mono tracking-[0.25em] text-[#E8D5B5] uppercase whitespace-nowrap">
-            <span>DIGITAL PRODUCTS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>TEMPLATES</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>CREATOR TOOLS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>RESOURCES</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>UI KITS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>EBOOKS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>AND MORE</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>DIGITAL PRODUCTS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>TEMPLATES</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>CREATOR TOOLS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>RESOURCES</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>UI KITS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>EBOOKS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>AND MORE</span>
-          </div>
-        </section>
-
-        {/* ============================================================ */}
-        {/* SECTION 03: "WORTH DISCOVERING." (HORIZONTAL SHOWCASE)       */}
-        {/* ============================================================ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+        <section className="px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto border-b border-[#E6DBD1]">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
             <div>
-              <h2 className="text-3xl sm:text-5xl font-light font-editorial text-[#F7EFE2] tracking-tight">
-                Worth discovering.
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8BFA5] bg-[#F3E9DD] mb-3">
+                <Compass className="w-3.5 h-3.5 text-[#6B4632]" />
+                <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
+                  Product Discovery
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#111111]">
+                Explore what creators are making.
               </h2>
-              <p className="text-xs sm:text-sm text-[#BBAE9F] mt-2 font-light">
-                A curated collection of digital products made by independent creators.
+              <p className="text-sm text-[#6B4632] mt-2 font-light max-w-xl">
+                Browse our curated selection of digital products built by verified independent developers and designers.
               </p>
             </div>
+
             <Link
-              href="/products"
-              className="text-xs font-mono text-[#E8D5B5] hover:text-[#F43F5E] flex items-center gap-1.5 transition-colors"
+              href="/discover"
+              className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider font-semibold text-[#111111] hover:text-[#B42318] py-2 transition-colors self-start md:self-end"
             >
-              <span>View all</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Explore all products</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-64 rounded-3xl bg-[#211815] animate-pulse border border-[#3A2930]" />
+          {/* Quick Filter Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
+            <button
+              onClick={() => setActiveCategory("all")}
+              className={`px-4 py-2 rounded-md text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-colors ${
+                activeCategory === "all"
+                  ? "bg-[#111111] text-[#FFFFFF] font-semibold"
+                  : "bg-[#FFFFFF] text-[#6B4632] border border-[#E6DBD1] hover:border-[#3B2418]"
+              }`}
+            >
+              All Assets
+            </button>
+            {MARKETPLACE_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.slug)}
+                className={`px-4 py-2 rounded-md text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-colors ${
+                  activeCategory === cat.slug
+                    ? "bg-[#111111] text-[#FFFFFF] font-semibold"
+                    : "bg-[#FFFFFF] text-[#6B4632] border border-[#E6DBD1] hover:border-[#3B2418]"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Product Grid */}
+          {previewProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {previewProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
               ))}
-            </div>
-          ) : products.length === 0 ? (
-            <div className="rounded-3xl border border-[#3A2930] bg-[#211815] p-12 text-center max-w-2xl mx-auto space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#1B101B] border border-[#3A2930] flex items-center justify-center text-[#E8D5B5] mx-auto">
-                <Package className="w-6 h-6 text-[#E8D5B5]" />
-              </div>
-              <h3 className="text-xl font-editorial text-[#F7EFE2]">No products published yet</h3>
-              <p className="text-xs text-[#BBAE9F] max-w-md mx-auto leading-relaxed">
-                The marketplace catalog is ready for creators. Be among the first to publish your digital templates, boilerplates, or guides.
-              </p>
-              <div className="pt-2">
-                <Link
-                  href="/seller/signup"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] transition-colors"
-                >
-                  <Store className="w-3.5 h-3.5" />
-                  <span>Become a Seller</span>
-                </Link>
-              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+            <div className="p-12 text-center rounded-xl border border-[#E6DBD1] bg-[#FFFFFF]">
+              <Package className="w-10 h-10 text-[#6B4632] mx-auto mb-3" />
+              <h3 className="font-serif text-lg text-[#111111]">No products published yet in this section.</h3>
+              <p className="text-xs text-[#6B4632] mt-1 font-light">
+                Explore other categories or apply to become a seller today.
+              </p>
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <Link
+                  href="/categories"
+                  className="px-4 py-2 text-xs font-mono uppercase border border-[#E6DBD1] rounded-md text-[#3B2418] hover:bg-[#F3E9DD]"
+                >
+                  Explore Categories
+                </Link>
+                <Link
+                  href="/signup/seller"
+                  className="px-4 py-2 text-xs font-mono uppercase bg-[#111111] text-[#FFFFFF] rounded-md hover:bg-[#3B2418]"
+                >
+                  Become a Seller
+                </Link>
+              </div>
             </div>
           )}
         </section>
 
         {/* ============================================================ */}
-        {/* SECTION 04: "EXPLORE CATEGORIES" (TYPOGRAPHIC EDITORIAL)    */}
+        {/* 6. CATEGORIES SECTION (RICH ARCHITECTURE)                    */}
         {/* ============================================================ */}
-        <section id="categories" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-[#3A2930]">
-          <div className="flex items-center justify-between mb-12">
+        <section className="px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto border-b border-[#E6DBD1] bg-[#FAF8F4]">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-light font-editorial text-[#F7EFE2] tracking-tight">
-                Explore Categories
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8BFA5] bg-[#F3E9DD] mb-3">
+                <Layers className="w-3.5 h-3.5 text-[#6B4632]" />
+                <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
+                  Taxonomy & Classification
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#111111]">
+                Explore by category.
               </h2>
+              <p className="text-sm text-[#6B4632] mt-2 font-light max-w-xl">
+                Find exactly what your workflow requires across curated digital disciplines.
+              </p>
             </div>
-            {/* Circular Arrow Nav Buttons matching reference image */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="w-9 h-9 rounded-full border border-[#3A2930] bg-[#211815] hover:border-[#E8D5B5]/50 hover:bg-[#2B201C] flex items-center justify-center text-[#BBAE9F] hover:text-[#F7EFE2] transition-colors"
-                aria-label="Previous categories"
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                className="w-9 h-9 rounded-full border border-[#3A2930] bg-[#211815] hover:border-[#E8D5B5]/50 hover:bg-[#2B201C] flex items-center justify-center text-[#BBAE9F] hover:text-[#F7EFE2] transition-colors"
-                aria-label="Next categories"
-              >
-                →
-              </button>
-            </div>
+
+            <Link
+              href="/categories"
+              className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider font-semibold text-[#B42318] hover:underline py-2 transition-colors self-start md:self-end"
+            >
+              <span>View all categories</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { num: "01", name: "Design", desc: "UI kits, icons, graphics", slug: "design" },
-              { num: "02", name: "Development", desc: "Code, SaaS, boilerplates", slug: "development" },
-              { num: "03", name: "Productivity", desc: "Templates, planners", slug: "productivity" },
-              { num: "04", name: "Business", desc: "Guides, resources", slug: "business" },
-              { num: "05", name: "Education", desc: "Courses, eBooks", slug: "education" },
-              { num: "06", name: "Creative", desc: "Fonts, media, presets", slug: "creative" },
-            ].map((cat) => (
-              <Link
-                key={cat.num}
-                href={`/products?category=${cat.slug}`}
-                className="group p-6 rounded-2xl border border-[#3A2930] bg-[#211815] hover:border-[#E8D5B5]/60 hover:bg-[#2B201C] transition-all duration-300 flex items-center justify-between"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {MARKETPLACE_CATEGORIES.map((cat) => (
+              <div
+                key={cat.id}
+                className="group rounded-xl border border-[#E6DBD1] bg-[#FFFFFF] p-6 hover:border-[#3B2418] hover:shadow-sm transition-all duration-200 flex flex-col justify-between"
               >
-                <div className="flex items-start gap-4">
-                  <span className="text-xs font-mono text-[#F43F5E] font-medium pt-1">
-                    {cat.num}
-                  </span>
-                  <div>
-                    <h3 className="text-lg font-medium text-[#F7EFE2] group-hover:text-[#E8D5B5] font-editorial transition-colors">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="w-9 h-9 rounded-lg border border-[#D8BFA5] bg-[#F3E9DD] flex items-center justify-center text-[#3B2418] group-hover:bg-[#3B2418] group-hover:text-[#FFFFFF] transition-colors">
+                      {cat.slug === "design" && <Palette className="w-4 h-4" />}
+                      {cat.slug === "development" && <Code className="w-4 h-4" />}
+                      {cat.slug === "templates" && <LayoutTemplate className="w-4 h-4" />}
+                      {cat.slug === "business" && <Briefcase className="w-4 h-4" />}
+                      {cat.slug === "education" && <GraduationCap className="w-4 h-4" />}
+                      {cat.slug === "creative" && <Camera className="w-4 h-4" />}
+                      {cat.slug === "ai" && <Sparkles className="w-4 h-4" />}
+                    </span>
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-[#A98165]">
+                      {cat.subCategories.length} Types
+                    </span>
+                  </div>
+
+                  <h3 className="font-serif text-xl font-medium text-[#111111] group-hover:text-[#6B4632] transition-colors">
+                    <Link href={`/discover?category=${cat.slug}`}>
                       {cat.name}
-                    </h3>
-                    <p className="text-xs text-[#BBAE9F] mt-1 font-light">
-                      {cat.desc}
-                    </p>
+                    </Link>
+                  </h3>
+                  <p className="text-xs text-[#6B4632] font-light mt-1.5 line-clamp-2 leading-relaxed">
+                    {cat.description}
+                  </p>
+
+                  <div className="mt-4 pt-4 border-t border-[#E6DBD1] flex flex-wrap gap-1.5">
+                    {cat.subCategories.slice(0, 3).map((sub) => (
+                      <Link
+                        key={sub.slug}
+                        href={`/discover?category=${cat.slug}&sub=${sub.slug}`}
+                        className="text-[11px] font-mono text-[#6B4632] hover:text-[#111111] px-2 py-0.5 rounded bg-[#FAF8F4] border border-[#E6DBD1] hover:border-[#6B4632] transition-colors"
+                      >
+                        {sub.name}
+                      </Link>
+                    ))}
                   </div>
                 </div>
-                <ArrowRight className="w-4 h-4 text-[#BBAE9F] group-hover:text-[#F43F5E] group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
+
+                <div className="mt-5 pt-3">
+                  <Link
+                    href={`/discover?category=${cat.slug}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#3B2418] group-hover:text-[#B42318] font-semibold transition-colors"
+                  >
+                    <span>Browse {cat.name}</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                </div>
+              </div>
             ))}
           </div>
         </section>
 
         {/* ============================================================ */}
-        {/* SECTION 05: "FROM IDEA TO ACCESS." (HOW IT WORKS TIMELINE)   */}
+        {/* 7. FEATURED & POPULAR PRODUCTS SECTION                       */}
         {/* ============================================================ */}
-        <section id="how-it-works" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-[#3A2930]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-4">
-            {/* Left Header matching reference */}
-            <div className="lg:col-span-4">
-              <span className="text-[11px] font-mono tracking-[0.25em] text-[#F43F5E] uppercase block mb-2 font-medium">
-                FOR THE BUYER
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-light font-editorial text-[#F7EFE2] tracking-tight">
-                From idea to access.
+        <section className="px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto border-b border-[#E6DBD1]">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8BFA5] bg-[#F3E9DD] mb-3">
+                <TrendingUp className="w-3.5 h-3.5 text-[#6B4632]" />
+                <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
+                  Curated Catalog
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#111111]">
+                Featured & Popular Products.
               </h2>
-              <p className="text-xs sm:text-sm text-[#BBAE9F] mt-2 font-light">
-                How it works.
+              <p className="text-sm text-[#6B4632] mt-2 font-light max-w-xl">
+                Top-rated development boilerplates, design systems, and productivity kits trusted by teams.
               </p>
             </div>
 
-            {/* Right Stepper matching reference with horizontal track */}
-            <div className="lg:col-span-8 relative">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
-                {[
-                  {
-                    step: "01",
-                    title: "Discover",
-                    desc: "Find a product that solves your problem.",
-                  },
-                  {
-                    step: "02",
-                    title: "Choose",
-                    desc: "Explore the product, creator and details.",
-                  },
-                  {
-                    step: "03",
-                    title: "Purchase",
-                    desc: "Complete your payment securely.",
-                  },
-                  {
-                    step: "04",
-                    title: "Access",
-                    desc: "Your digital product becomes available.",
-                  },
-                ].map((s) => (
-                  <div
-                    key={s.step}
-                    className="p-5 rounded-2xl border border-[#3A2930] bg-[#211815] relative group hover:border-[#E8D5B5]/50 transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <span className="text-xs font-mono font-bold text-[#F43F5E] block mb-2">
-                        {s.step}
-                      </span>
-                      <h3 className="text-base font-medium text-[#F7EFE2] font-editorial mb-1.5">
-                        {s.title}
-                      </h3>
-                      <p className="text-xs text-[#BBAE9F] font-light leading-relaxed">
-                        {s.desc}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Link
+              href="/discover?sort=rating"
+              className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider font-semibold text-[#111111] hover:text-[#B42318] py-2 transition-colors self-start md:self-end"
+            >
+              <span>View highest rated</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {(featuredProducts.length > 0 ? featuredProducts : DEMO_PRODUCTS.slice(0, 4)).map((p) => (
+              <ProductCard key={p.id} product={p as ProductCardData} />
+            ))}
           </div>
         </section>
 
         {/* ============================================================ */}
-        {/* SECTION 06: FOR CREATORS (STUDIO SHOWCASE)                    */}
+        {/* 9 & 12. DEDICATED SELLER CTA SECTION (DISTINCT PALETTE)      */}
         {/* ============================================================ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-[#3A2930]">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Column (5 Cols) */}
-            <div className="lg:col-span-5">
-              <span className="text-[11px] font-mono tracking-[0.25em] text-[#F43F5E] uppercase block mb-2">
-                For Creators
+        <section
+          id="seller-cta"
+          className="relative px-4 sm:px-6 lg:px-8 py-20 md:py-28 bg-[#1A1715] text-[#FAF8F4] overflow-hidden"
+        >
+          <div className="max-w-5xl mx-auto text-center relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#6B4632] bg-[#3B2418] mb-6">
+              <Store className="w-3.5 h-3.5 text-[#D8BFA5]" />
+              <span className="text-[11px] font-mono tracking-widest text-[#F3E9DD] uppercase font-semibold">
+                CREATOR STOREFRONT
               </span>
-              <h2 className="text-3xl sm:text-5xl font-light font-editorial text-[#F7EFE2] leading-tight mb-4">
-                Make something <br />
-                <span className="italic text-[#E8D5B5]">worth sharing.</span>
-              </h2>
-              <p className="text-xs sm:text-sm text-[#BBAE9F] leading-relaxed font-light mb-6">
-                Turn your skills, ideas and resources into digital products and reach a global audience.
-                Retain 90% net earnings with automated ledger reconciliations.
-              </p>
+            </div>
 
-              {/* Workflow Checklist */}
-              <div className="grid grid-cols-2 gap-3 mb-8 text-xs font-mono text-[#F7EFE2]">
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E]" />
-                  <span>Create digital assets</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E]" />
-                  <span>Upload private zip</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E]" />
-                  <span>Submit for approval</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E]" />
-                  <span>Get approved</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E]" />
-                  <span>Sell publicly</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E]" />
-                  <span>Earn 90% split</span>
-                </div>
-              </div>
+            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-medium tracking-tight text-[#FAF8F4] leading-[1.15] mb-6 max-w-3xl mx-auto">
+              Have something worth selling?
+            </h2>
 
+            <p className="text-base sm:text-lg text-[#D8BFA5] font-light max-w-2xl mx-auto leading-relaxed mb-10">
+              Turn your digital work into a product and reach customers looking for useful resources.
+              Retain 90% of every sale with instant UPI and card settlements.
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-4">
               <Link
-                href="/seller/signup"
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] shadow-lg shadow-[#F43F5E]/30 transition-all"
+                href="/signup/seller"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#111111] bg-[#FAF8F4] hover:bg-[#F3E9DD] transition-colors shadow-sm"
               >
                 <span>Start Selling</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4 text-[#B42318]" />
+              </Link>
+
+              <Link
+                href="/#how-it-works"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FAF8F4] hover:text-[#FFFFFF] bg-[#3B2418] hover:bg-[#4D3122] border border-[#6B4632] transition-colors"
+              >
+                <span>Learn how selling works</span>
               </Link>
             </div>
 
-            {/* Right Column (7 Cols - Creator Platform Preview) */}
-            <div className="lg:col-span-7">
-              <div className="rounded-3xl border border-[#3A2930] bg-[#211815] p-6 sm:p-8 shadow-2xl shadow-black/80">
-                {/* Header */}
-                <div className="flex items-center justify-between pb-6 border-b border-[#3A2930]">
-                  <div>
-                    <span className="text-[10px] font-mono tracking-widest uppercase text-[#BBAE9F]">
-                      Creator Platform
-                    </span>
-                    <h3 className="text-xl font-medium text-[#F7EFE2] font-editorial mt-0.5">
-                      Your Studio
-                    </h3>
-                  </div>
-                  <span className="px-3 py-1 rounded-full text-[10px] font-mono bg-[#86A989]/10 text-[#86A989] border border-[#86A989]/30">
-                    Live Workspace
+            {/* Seller Proof Points */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-16 mt-16 border-t border-[#3B2418] text-left">
+              <div className="p-5 rounded-lg border border-[#3B2418] bg-[#25160E]/50">
+                <span className="text-xs font-mono text-[#D8BFA5] uppercase block mb-1">Fee Model</span>
+                <div className="text-xl font-serif font-medium text-[#FAF8F4]">90% Net Earnings</div>
+                <p className="text-xs text-[#D8BFA5]/80 mt-1 font-light">
+                  Simple 10% platform fee. Zero listing charges or hidden costs.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-lg border border-[#3B2418] bg-[#25160E]/50">
+                <span className="text-xs font-mono text-[#D8BFA5] uppercase block mb-1">Asset Security</span>
+                <div className="text-xl font-serif font-medium text-[#FAF8F4]">Private Storage</div>
+                <p className="text-xs text-[#D8BFA5]/80 mt-1 font-light">
+                  Files protected with 15-minute expiring presigned download URLs.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-lg border border-[#3B2418] bg-[#25160E]/50">
+                <span className="text-xs font-mono text-[#D8BFA5] uppercase block mb-1">Banking</span>
+                <div className="text-xl font-serif font-medium text-[#FAF8F4]">Automated Settlement</div>
+                <p className="text-xs text-[#D8BFA5]/80 mt-1 font-light">
+                  Verified bank payouts directly to your Indian bank account.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================ */}
+        {/* 10. HOW MARKETPLACE WORKS                                    */}
+        {/* ============================================================ */}
+        <section id="how-it-works" className="px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto border-b border-[#E6DBD1]">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8BFA5] bg-[#F3E9DD] mb-3">
+              <Clock className="w-3.5 h-3.5 text-[#6B4632]" />
+              <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
+                HOW IT WORKS
+              </span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#111111]">
+              Simple, transparent commerce.
+            </h2>
+            <p className="text-sm text-[#6B4632] mt-2 font-light">
+              Built for speed, security, and verified digital ownership.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            {/* For Customers */}
+            <div className="rounded-2xl border border-[#E6DBD1] bg-[#FFFFFF] p-8 shadow-xs">
+              <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#E6DBD1]">
+                <h3 className="font-serif text-xl font-medium text-[#111111]">
+                  For Customers
+                </h3>
+                <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-[#F3E9DD] text-[#3B2418]">
+                  Buyer Experience
+                </span>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full border border-[#D8BFA5] bg-[#FAF8F4] flex items-center justify-center font-mono font-bold text-xs text-[#3B2418] shrink-0">
+                    01
                   </span>
-                </div>
-
-                {/* 4 Metric Cards (Platform architectural guarantees) */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-6">
-                  <div className="p-3.5 rounded-xl bg-[#1B101B] border border-[#3A2930]">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Creator Split</span>
-                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">90% Net</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#1B101B] border border-[#3A2930]">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Platform Fee</span>
-                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">10%</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#1B101B] border border-[#3A2930]">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Delivery</span>
-                    <span className="text-lg font-semibold text-[#F7EFE2] mt-1 block">Instant</span>
-                  </div>
-                  <div className="p-3.5 rounded-xl bg-[#1B101B] border border-[#3A2930]">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#BBAE9F] block">Settlement</span>
-                    <span className="text-lg font-semibold text-[#E8D5B5] mt-1 block">Direct Bank</span>
+                  <div>
+                    <h4 className="font-serif font-medium text-base text-[#111111]">Discover</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5 leading-relaxed">
+                      Search and explore verified templates, boilerplates, and design systems across multiple categories.
+                    </p>
                   </div>
                 </div>
 
-                {/* Performance Preview */}
-                <div className="p-4 rounded-2xl bg-[#1B101B] border border-[#3A2930]">
-                  <div className="flex items-center justify-between text-xs text-[#BBAE9F] mb-3">
-                    <span>Creator Growth Trajectory</span>
-                    <span className="text-[#F43F5E] font-mono font-medium">Real-Time Ledger</span>
+                <div className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full border border-[#D8BFA5] bg-[#FAF8F4] flex items-center justify-center font-mono font-bold text-xs text-[#3B2418] shrink-0">
+                    02
+                  </span>
+                  <div>
+                    <h4 className="font-serif font-medium text-base text-[#111111]">Choose</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5 leading-relaxed">
+                      Review product details, included file formats, licensing rights, version notes, and verified ratings.
+                    </p>
                   </div>
-                  <div className="h-28 w-full relative">
-                    <svg className="w-full h-full overflow-visible" viewBox="0 0 400 100" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="studioChartGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#F43F5E" stopOpacity="0.3" />
-                          <stop offset="100%" stopColor="#F43F5E" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-                      <path
-                        d="M 0 80 Q 50 65 100 70 T 200 40 T 300 25 T 400 15 L 400 100 L 0 100 Z"
-                        fill="url(#studioChartGrad)"
-                      />
-                      <path
-                        d="M 0 80 Q 50 65 100 70 T 200 40 T 300 25 T 400 15"
-                        fill="none"
-                        stroke="#F43F5E"
-                        strokeWidth="2.5"
-                      />
-                      <circle cx="300" cy="25" r="4" fill="#F43F5E" stroke="#1B101B" strokeWidth="2" />
-                      <circle cx="400" cy="15" r="4" fill="#FB7185" stroke="#1B101B" strokeWidth="2" />
-                    </svg>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full border border-[#D8BFA5] bg-[#FAF8F4] flex items-center justify-center font-mono font-bold text-xs text-[#3B2418] shrink-0">
+                    03
+                  </span>
+                  <div>
+                    <h4 className="font-serif font-medium text-base text-[#111111]">Purchase</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5 leading-relaxed">
+                      Pay securely with Razorpay via UPI QR, credit cards, or net banking with instant verification.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full border border-[#D8BFA5] bg-[#FAF8F4] flex items-center justify-center font-mono font-bold text-xs text-[#3B2418] shrink-0">
+                    04
+                  </span>
+                  <div>
+                    <h4 className="font-serif font-medium text-base text-[#111111]">Download</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5 leading-relaxed">
+                      Access your personal library anytime to download signed asset packages and tax invoices.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* For Sellers */}
+            <div className="rounded-2xl border border-[#E6DBD1] bg-[#FFFFFF] p-8 shadow-xs">
+              <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#E6DBD1]">
+                <h3 className="font-serif text-xl font-medium text-[#111111]">
+                  For Sellers
+                </h3>
+                <span className="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-[#3B2418] text-[#FAF8F4]">
+                  Creator Workflow
+                </span>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full border border-[#6B4632] bg-[#3B2418] flex items-center justify-center font-mono font-bold text-xs text-[#FAF8F4] shrink-0">
+                    01
+                  </span>
+                  <div>
+                    <h4 className="font-serif font-medium text-base text-[#111111]">Create</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5 leading-relaxed">
+                      Register as a creator, setup your store identity, and link your verified payout bank details.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full border border-[#6B4632] bg-[#3B2418] flex items-center justify-center font-mono font-bold text-xs text-[#FAF8F4] shrink-0">
+                    02
+                  </span>
+                  <div>
+                    <h4 className="font-serif font-medium text-base text-[#111111]">Upload</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5 leading-relaxed">
+                      Package digital ZIP, PDF, or code files, set your price in INR, and define licensing specifications.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full border border-[#6B4632] bg-[#3B2418] flex items-center justify-center font-mono font-bold text-xs text-[#FAF8F4] shrink-0">
+                    03
+                  </span>
+                  <div>
+                    <h4 className="font-serif font-medium text-base text-[#111111]">Submit</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5 leading-relaxed">
+                      Send your draft for admin moderation. Our team verifies safety and metadata before publishing.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full border border-[#6B4632] bg-[#3B2418] flex items-center justify-center font-mono font-bold text-xs text-[#FAF8F4] shrink-0">
+                    04
+                  </span>
+                  <div>
+                    <h4 className="font-serif font-medium text-base text-[#111111]">Sell</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5 leading-relaxed">
+                      Reach customers, monitor your earnings ledger in real-time, and request automated payouts.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -594,40 +648,181 @@ export default function HomePage() {
         </section>
 
         {/* ============================================================ */}
-        {/* SECTION 07: EDITORIAL TESTIMONIALS SLIDER                    */}
+        {/* 11 & 12. CUSTOMER & SELLER BENEFITS SECTIONS                 */}
         {/* ============================================================ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-[#3A2930]">
-          <TestimonialSlider />
-        </section>
+        <section id="customer-benefits" className="px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto border-b border-[#E6DBD1]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8BFA5] bg-[#F3E9DD] mb-3">
+                <Shield className="w-3.5 h-3.5 text-[#B42318]" />
+                <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
+                  Buyer Guarantees
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#111111]">
+                Built for confident purchasing.
+              </h2>
+              <p className="text-sm text-[#6B4632] mt-3 font-light leading-relaxed">
+                Every digital sale is verified and recorded with strict audit records. You always own lifetime access to your digital purchases.
+              </p>
 
-        {/* ============================================================ */}
-        {/* SECTION 08: PLATFORM TRUST BAR                               */}
-        {/* ============================================================ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 border-t border-[#3A2930]">
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-12 text-[11px] font-mono tracking-[0.2em] text-[#BBAE9F] uppercase text-center">
-            <span>SECURE PAYMENTS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>DIGITAL ACCESS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>CURATED PRODUCTS</span>
-            <span className="text-[#F43F5E]">✦</span>
-            <span>CREATOR MARKETPLACE</span>
+              <div className="mt-8 space-y-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-[#B42318] shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-serif font-medium text-[#111111]">Personal Digital Library</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5">
+                      Your digital goods never disappear. Access and download anytime from your account dashboard.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-[#B42318] shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-serif font-medium text-[#111111]">Secure Razorpay Checkout</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5">
+                      Pay with UPI, Cards, and Net Banking under PCI-DSS encrypted payment infrastructure.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-[#B42318] shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-serif font-medium text-[#111111]">Automated Tax Invoices</h4>
+                    <p className="text-xs text-[#6B4632] font-light mt-0.5">
+                      Download official PDF payment receipts directly for expense accounting.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8">
+                <Link
+                  href="/signup/customer"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-colors"
+                >
+                  <span>Create Customer Account</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            <div id="seller-benefits" className="p-8 rounded-2xl border border-[#D8BFA5] bg-[#F3E9DD]/60">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8BFA5] bg-[#FAF8F4] mb-3">
+                <Store className="w-3.5 h-3.5 text-[#6B4632]" />
+                <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
+                  Seller Benefits
+                </span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-serif font-medium text-[#111111]">
+                Fair economics for digital creators.
+              </h3>
+              <p className="text-xs text-[#6B4632] mt-2 font-light leading-relaxed">
+                Zero listing fees, zero subscriptions. Only a flat 10% platform fee when you actually make a sale.
+              </p>
+
+              <div className="mt-6 space-y-3.5">
+                <div className="p-3.5 rounded-lg border border-[#E6DBD1] bg-[#FFFFFF]">
+                  <h4 className="text-xs font-mono uppercase tracking-wider font-semibold text-[#111111]">
+                    90% Net Earnings
+                  </h4>
+                  <p className="text-xs text-[#6B4632] mt-0.5 font-light">
+                    Keep the vast majority of your revenue. You earned it.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-lg border border-[#E6DBD1] bg-[#FFFFFF]">
+                  <h4 className="text-xs font-mono uppercase tracking-wider font-semibold text-[#111111]">
+                    Direct Bank Payouts
+                  </h4>
+                  <p className="text-xs text-[#6B4632] mt-0.5 font-light">
+                    Automated ledger tracking with direct settlements to verified Indian banks.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-lg border border-[#E6DBD1] bg-[#FFFFFF]">
+                  <h4 className="text-xs font-mono uppercase tracking-wider font-semibold text-[#111111]">
+                    Protected Asset Downloads
+                  </h4>
+                  <p className="text-xs text-[#6B4632] mt-0.5 font-light">
+                    Signed, expiring URLs protect files from unauthorized link scraping.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Link
+                  href="/signup/seller"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#3B2418] border border-[#3B2418] bg-[#FFFFFF] hover:bg-[#F3E9DD] transition-colors"
+                >
+                  <span>Apply to Become a Seller</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
         {/* ============================================================ */}
-        {/* SECTION 09: FAQ ACCORDION                                    */}
+        {/* 13. TRUST & SECURITY SECTION                                 */}
         {/* ============================================================ */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-[#3A2930]">
+        <section id="trust-section" className="px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto border-b border-[#E6DBD1]">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <h2 className="text-2xl sm:text-3xl font-serif font-medium text-[#111111]">
+              Engineered for trustworthy marketplace commerce.
+            </h2>
+            <p className="text-xs text-[#6B4632] mt-2 font-light">
+              Factual security and architectural integrity built into every interaction.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-6 rounded-xl border border-[#E6DBD1] bg-[#FFFFFF]">
+              <Lock className="w-6 h-6 text-[#3B2418] mb-3" />
+              <h3 className="font-serif text-base font-medium text-[#111111]">Secure Payments</h3>
+              <p className="text-xs text-[#6B4632] mt-1.5 font-light leading-relaxed">
+                Processed via Razorpay with encrypted payment verification and webhook validation.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border border-[#E6DBD1] bg-[#FFFFFF]">
+              <Download className="w-6 h-6 text-[#3B2418] mb-3" />
+              <h3 className="font-serif text-base font-medium text-[#111111]">Protected Downloads</h3>
+              <p className="text-xs text-[#6B4632] mt-1.5 font-light leading-relaxed">
+                Time-limited signed URLs generated strictly on verified buyer entitlements.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border border-[#E6DBD1] bg-[#FFFFFF]">
+              <Shield className="w-6 h-6 text-[#3B2418] mb-3" />
+              <h3 className="font-serif text-base font-medium text-[#111111]">Moderated Catalog</h3>
+              <p className="text-xs text-[#6B4632] mt-1.5 font-light leading-relaxed">
+                All seller profiles and product listings undergo rigorous administrative review.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border border-[#E6DBD1] bg-[#FFFFFF]">
+              <Store className="w-6 h-6 text-[#3B2418] mb-3" />
+              <h3 className="font-serif text-base font-medium text-[#111111]">Creator Tools</h3>
+              <p className="text-xs text-[#6B4632] mt-1.5 font-light leading-relaxed">
+                Real-time gross sales, platform commission calculation, and banking KYC.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================ */}
+        {/* FAQ SECTION                                                  */}
+        {/* ============================================================ */}
+        <section className="px-4 sm:px-6 lg:px-8 py-16 md:py-24 max-w-7xl mx-auto border-b border-[#E6DBD1]">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-[11px] font-mono tracking-[0.25em] text-[#E8D5B5] uppercase block mb-2">
-              Common Inquiries
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-light font-editorial text-[#F7EFE2] tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-serif font-medium text-[#111111]">
               Frequently Asked Questions
             </h2>
-            <p className="text-xs sm:text-sm text-[#BBAE9F] mt-2 font-light">
-              Clear, transparent answers regarding platform commerce, security, and digital downloads.
+            <p className="text-xs text-[#6B4632] mt-2 font-light">
+              Clear answers regarding payments, creator onboarding, and delivery.
             </p>
           </div>
 
@@ -635,38 +830,34 @@ export default function HomePage() {
         </section>
 
         {/* ============================================================ */}
-        {/* SECTION 10: FINAL CALL TO ACTION                             */}
+        {/* 14. FINAL CALL TO ACTION                                     */}
         {/* ============================================================ */}
-        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 my-10 text-center">
-          <div className="p-10 sm:p-16 rounded-3xl border border-[#3A2930] bg-[#211815] relative overflow-hidden shadow-2xl shadow-black/80">
-            {/* Ambient Corner Accents */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#F43F5E]/5 blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#E8D5B5]/5 blur-3xl pointer-events-none" />
-
-            <span className="text-[11px] font-mono font-medium tracking-[0.25em] text-[#E8D5B5] uppercase block mb-3">
-              Velvet Market
+        <section className="px-4 sm:px-6 lg:px-8 py-20 md:py-28 max-w-7xl mx-auto text-center">
+          <div className="max-w-3xl mx-auto">
+            <span className="text-[11px] font-mono tracking-widest uppercase text-[#B42318] font-semibold block mb-3">
+              YOUR NEXT WORKFLOW AWAITS
             </span>
-            <h2 className="text-3xl sm:text-5xl font-light font-editorial tracking-tight text-[#F7EFE2] mb-4 max-w-xl mx-auto leading-tight">
-              Find something <br />
-              <span className="italic text-[#E8D5B5]">worth keeping.</span>
+            <h2 className="text-3xl sm:text-5xl font-serif font-medium text-[#111111] leading-tight mb-6">
+              Your next digital product is waiting to be discovered.
             </h2>
-            <p className="text-xs sm:text-sm text-[#BBAE9F] font-light max-w-md mx-auto mb-8 leading-relaxed">
-              Explore digital products made to be useful, inspiring and worth your time.
+            <p className="text-base text-[#6B4632] font-light max-w-xl mx-auto mb-10 leading-relaxed">
+              Join thousands of creators and builders sharing production assets, codebases, and templates worldwide.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5">
+            <div className="flex flex-wrap items-center justify-center gap-4">
               <Link
-                href="/products"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] active:bg-[#9F1239] shadow-lg shadow-[#F43F5E]/30 transition-all"
+                href="/discover"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-colors shadow-sm"
               >
-                <span>Explore Marketplace</span>
+                <span>Explore Products</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
+
               <Link
-                href="/seller/signup"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full text-xs font-medium text-[#F7EFE2] hover:text-white bg-[#1B101B] hover:bg-[#2B201C] border border-[#3A2930] hover:border-[#E8D5B5]/50 transition-all"
+                href="/signup/seller"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#3B2418] hover:text-[#111111] bg-[#FFFFFF] hover:bg-[#F3E9DD] border border-[#D8BFA5] transition-colors shadow-2xs"
               >
-                <Store className="w-4 h-4 text-[#E8D5B5]" />
+                <Store className="w-4 h-4 text-[#6B4632]" />
                 <span>Start Selling</span>
               </Link>
             </div>
@@ -674,8 +865,8 @@ export default function HomePage() {
         </section>
       </main>
 
+      {/* 15. FOOTER */}
       <MarketplaceFooter />
     </SpatialBackground>
   );
 }
-

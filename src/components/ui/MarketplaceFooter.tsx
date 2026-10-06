@@ -2,123 +2,117 @@
 
 import React from "react";
 import Link from "next/link";
-import { Lock, ArrowUpRight } from "lucide-react";
+import { Lock, ShieldCheck, ArrowRight } from "lucide-react";
+import { MarketplaceBrandLogo } from "@/components/ui/MarketplaceBrandLogo";
 
 export function MarketplaceFooter() {
   return (
-    <footer className="relative z-10 border-t border-[#3A2930] bg-[#120A12] pt-16 pb-12 text-[#BBAE9F]">
+    <footer className="relative z-10 border-t border-[#3B2418]/20 bg-[#1A1715] text-[#D8BFA5] pt-16 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 pb-12 border-b border-[#3A2930]">
-          {/* Brand Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 pb-12 border-b border-[#3B2418]">
+          {/* Brand Col */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <Link href="/" className="inline-flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#211815] border border-[#3A2930]">
-                <span className="w-2 h-2 rounded-full bg-[#F43F5E] shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-              </div>
-              <span className="text-base font-medium tracking-tight text-[#F7EFE2] font-editorial">
-                Marketify
-              </span>
-            </Link>
+            <MarketplaceBrandLogo variant="dark" size="lg" showTagline={true} />
 
-            <p className="text-xs text-[#BBAE9F] leading-relaxed max-w-sm font-light">
-              Good digital products deserve to be discovered. A curated marketplace connecting independent creators with builders around the world.
+            <p className="text-xs text-[#D8BFA5]/90 leading-relaxed max-w-sm font-light mt-1">
+              A curated digital marketplace connecting independent creators, developers, and designers with builders across the globe. Built for high-integrity digital commerce.
             </p>
 
-            <div className="flex items-center gap-3 mt-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] bg-[#86A989]/10 text-[#86A989] border border-[#86A989]/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#86A989] animate-pulse" />
-                <span>All Systems Operational</span>
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono bg-[#3B2418] text-[#FAF8F4] border border-[#6B4632]">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#B42318]" />
+                <span>Razorpay Verified</span>
               </div>
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] bg-[#211815] text-[#BBAE9F] border border-[#3A2930]">
-                <Lock className="w-3 h-3 text-[#E8D5B5]" />
-                <span>256-Bit TLS</span>
+              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-mono bg-[#3B2418] text-[#FAF8F4] border border-[#6B4632]">
+                <Lock className="w-3.5 h-3.5 text-[#D8BFA5]" />
+                <span>Signed Expiring Downloads</span>
               </div>
             </div>
           </div>
 
-          {/* Col 1: Marketplace */}
+          {/* Col 1: Discover */}
           <div className="flex flex-col gap-3">
-            <h4 className="text-[11px] font-mono font-medium tracking-[0.2em] uppercase text-[#E8D5B5]">
-              Marketplace
+            <h4 className="text-[11px] font-mono font-semibold tracking-widest uppercase text-[#FAF8F4]">
+              Discover
             </h4>
             <ul className="flex flex-col gap-2.5 text-xs">
               <li>
-                <Link href="/products" className="hover:text-[#F7EFE2] transition-colors">
-                  Explore Catalog
+                <Link href="/discover" className="hover:text-[#FAF8F4] transition-colors">
+                  Explore Products
                 </Link>
               </li>
               <li>
-                <Link href="/products#categories" className="hover:text-[#F7EFE2] transition-colors">
-                  Categories
+                <Link href="/categories" className="hover:text-[#FAF8F4] transition-colors">
+                  Browse All Categories
                 </Link>
               </li>
               <li>
-                <Link href="/products?sort=sales" className="hover:text-[#F7EFE2] transition-colors">
-                  Trending Products
+                <Link href="/discover?sort=newest" className="hover:text-[#FAF8F4] transition-colors">
+                  New Releases
                 </Link>
               </li>
               <li>
-                <Link href="/products?sort=rating" className="hover:text-[#F7EFE2] transition-colors">
-                  Top Rated
+                <Link href="/discover?sort=rating" className="hover:text-[#FAF8F4] transition-colors">
+                  Top Rated Resources
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Col 2: For Creators */}
+          {/* Col 2: For Customers */}
           <div className="flex flex-col gap-3">
-            <h4 className="text-[11px] font-mono font-medium tracking-[0.2em] uppercase text-[#E8D5B5]">
-              Sell
+            <h4 className="text-[11px] font-mono font-semibold tracking-widest uppercase text-[#FAF8F4]">
+              For Buyers
             </h4>
             <ul className="flex flex-col gap-2.5 text-xs">
               <li>
-                <Link href="/seller/signup" className="hover:text-[#F7EFE2] transition-colors">
-                  Become a Seller
+                <Link href="/signup/customer" className="hover:text-[#FAF8F4] transition-colors">
+                  Create Customer Account
                 </Link>
               </li>
               <li>
-                <Link href="/seller/products" className="hover:text-[#F7EFE2] transition-colors">
-                  Seller Studio
+                <Link href="/login" className="hover:text-[#FAF8F4] transition-colors">
+                  Log In to Account
                 </Link>
               </li>
               <li>
-                <Link href="/seller/products/new" className="hover:text-[#F7EFE2] transition-colors">
-                  Upload Product
+                <Link href="/dashboard" className="hover:text-[#FAF8F4] transition-colors">
+                  Buyer Dashboard & Library
                 </Link>
               </li>
               <li>
-                <Link href="/seller/earnings" className="hover:text-[#F7EFE2] transition-colors">
-                  Earnings & Settlement
+                <Link href="/#how-it-works" className="hover:text-[#FAF8F4] transition-colors">
+                  How Purchasing Works
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Col 3: Buyers & Trust */}
+          {/* Col 3: For Sellers */}
           <div className="flex flex-col gap-3">
-            <h4 className="text-[11px] font-mono font-medium tracking-[0.2em] uppercase text-[#E8D5B5]">
-              Account
+            <h4 className="text-[11px] font-mono font-semibold tracking-widest uppercase text-[#FAF8F4]">
+              For Sellers
             </h4>
             <ul className="flex flex-col gap-2.5 text-xs">
               <li>
-                <Link href="/dashboard" className="hover:text-[#F7EFE2] transition-colors">
-                  Buyer Dashboard
+                <Link href="/signup/seller" className="hover:text-[#FAF8F4] text-[#FAF8F4] font-medium flex items-center gap-1 transition-colors">
+                  <span>Start Selling</span>
+                  <ArrowRight className="w-3 h-3 text-[#B42318]" />
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/library" className="hover:text-[#F7EFE2] transition-colors">
-                  Digital Library
+                <Link href="/#seller-benefits" className="hover:text-[#FAF8F4] transition-colors">
+                  Creator Benefits
                 </Link>
               </li>
               <li>
-                <Link href="/dashboard/orders" className="hover:text-[#F7EFE2] transition-colors">
-                  Order Receipts
+                <Link href="/seller/application-status" className="hover:text-[#FAF8F4] transition-colors">
+                  Seller Application Status
                 </Link>
               </li>
               <li>
-                <Link href="/admin/login" className="hover:text-[#F43F5E] transition-colors flex items-center gap-1">
-                  <span>Platform Control</span>
-                  <ArrowUpRight className="w-3 h-3 text-[#BBAE9F]" />
+                <Link href="/seller" className="hover:text-[#FAF8F4] transition-colors">
+                  Seller Workspace
                 </Link>
               </li>
             </ul>
@@ -126,17 +120,23 @@ export function MarketplaceFooter() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#BBAE9F]/80">
-          <p>© {new Date().getFullYear()} Marketify. Precision ledger mathematics. Expiring signed cloud downloads.</p>
-          <div className="flex items-center gap-6">
-            <span className="hover:text-[#F7EFE2] cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-[#F7EFE2] cursor-pointer">Terms of Service</span>
-            <span className="hover:text-[#F7EFE2] cursor-pointer">Creator Standards</span>
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#D8BFA5]/80">
+          <p>© {new Date().getFullYear()} Folio Marketplace. Precision digital commerce & creator economy.</p>
+          <div className="flex items-center gap-6 text-[11px] font-mono uppercase tracking-wider">
+            <Link href="/#trust-section" className="hover:text-[#FAF8F4] transition-colors">
+              Trust & Security
+            </Link>
+            <Link href="/#how-it-works" className="hover:text-[#FAF8F4] transition-colors">
+              Marketplace Model
+            </Link>
+            <Link href="/categories" className="hover:text-[#FAF8F4] transition-colors">
+              Directory
+            </Link>
           </div>
         </div>
       </div>
     </footer>
   );
 }
-export default MarketplaceFooter;
 
+export default MarketplaceFooter;

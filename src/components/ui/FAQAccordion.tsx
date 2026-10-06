@@ -12,42 +12,42 @@ const faqs: FAQItem[] = [
   {
     question: "What is this marketplace?",
     answer:
-      "Marketify is an editorial digital marketplace designed for creators and builders. We connect independent developers, designers, and authors with buyers looking for high-quality, verified digital tools, templates, UI kits, codebases, and audio resources.",
+      "Folio is a curated digital marketplace for creators, developers, and designers. We connect independent creators with builders seeking verified digital tools, boilerplates, templates, Figma systems, and e-books.",
   },
   {
-    question: "What can I buy on the marketplace?",
+    question: "What types of products are available?",
     answer:
-      "You can discover and purchase digital tools, SaaS boilerplates, Notion workspaces, developer UI kits, icon systems, e-books, and creative assets — all verified for quality and hosted securely.",
+      "Explore developer boilerplates, UI design kits, Notion workspaces, business spreadsheets, AI prompt packs, and educational guides — all vetted for quality and hosted on secure infrastructure.",
   },
   {
-    question: "How does purchasing work?",
+    question: "How does purchasing and payment work?",
     answer:
-      "Select any digital product and click 'Buy Now'. Payment is processed with 256-bit TLS encryption using Razorpay (supporting UPI, Cards, and NetBanking). The system operates on exact integer paise calculations with zero floating-point discrepancies.",
+      "Select any digital product and checkout instantly with Razorpay, supporting UPI (Google Pay, PhonePe, Paytm), Net Banking, and Credit/Debit cards. Calculations use exact integer paise with zero discrepancies.",
   },
   {
     question: "How do I become a seller?",
     answer:
-      "Apply through the Creator Studio with your store details and payout information. Once approved by our moderation team, you can immediately publish products and retain 90% of all gross sales.",
+      "Apply through the Seller Onboarding portal with your store details and payout banking information. Once approved by our team, you can publish products and keep 90% of all gross sales.",
   },
   {
-    question: "How does product approval work?",
+    question: "How does the moderation and approval process work?",
     answer:
-      "Every product submitted by creators undergoes thorough administrative review to verify file integrity, descriptions, licensing terms, and asset quality before being published to the public marketplace.",
+      "Every seller application and digital product undergoes verification by our administration team before going live. This guarantees genuine assets, accurate descriptions, and clean files for buyers.",
   },
   {
-    question: "Where can I access my purchased products?",
+    question: "Where do I access my purchased digital files?",
     answer:
-      "Upon payment confirmation, lifetime access is instantly granted to your account. You can view, organize, and download all your assets in your Buyer Dashboard under 'Digital Library'.",
+      "Purchases are immediately and permanently linked to your personal Buyer Library. You can log in at any time to re-download files, check version updates, and view invoices.",
   },
   {
-    question: "How do secure downloads work?",
+    question: "How do secure file downloads work?",
     answer:
-      "Your purchased assets are stored in private cloud storage. When you initiate a download, our server authenticates your purchase entitlement and generates a signed URL with a strict 15-minute expiration window to protect creator intellectual property.",
+      "All digital files are stored in private encrypted storage. When you click download, our server verifies your purchase entitlement and generates a signed download URL valid for 15 minutes.",
   },
   {
-    question: "How are creator payments processed?",
+    question: "How and when are seller earnings settled?",
     answer:
-      "Creator earnings are credited automatically to your studio ledger after the standard 10% platform fee. Available balances can be settled directly to your verified bank account.",
+      "Earnings are recorded transparently in your seller ledger immediately upon sale. After standard clearance, available balances can be requested for direct payout to your verified bank account.",
   },
 ];
 
@@ -65,38 +65,38 @@ export function FAQAccordion() {
         return (
           <div
             key={idx}
-            className={`rounded-2xl border transition-all duration-200 overflow-hidden bg-[#211815] ${
+            className={`rounded-xl border transition-all duration-200 overflow-hidden bg-[#FFFFFF] ${
               isOpen
-                ? "border-[#E8D5B5]/60 shadow-lg shadow-black/50"
-                : "border-[#3A2930] hover:border-[#523B44]"
+                ? "border-[#3B2418] shadow-sm"
+                : "border-[#E6DBD1] hover:border-[#D8BFA5]"
             }`}
           >
             <button
               onClick={() => toggle(idx)}
-              className="w-full px-6 py-4 sm:py-5 flex items-center justify-between text-left gap-4 group"
+              className="w-full px-6 py-4.5 sm:py-5 flex items-center justify-between text-left gap-4 group"
               aria-expanded={isOpen}
             >
               <span
-                className={`text-sm sm:text-base font-medium transition-colors ${
-                  isOpen ? "text-[#F7EFE2]" : "text-[#E8D5B5] group-hover:text-[#F7EFE2]"
+                className={`text-sm sm:text-base font-serif font-medium transition-colors ${
+                  isOpen ? "text-[#111111]" : "text-[#3B2418] group-hover:text-[#111111]"
                 }`}
               >
                 {faq.question}
               </span>
               <ChevronDown
-                className={`w-4 h-4 text-[#BBAE9F] shrink-0 transition-transform duration-200 ${
-                  isOpen ? "rotate-180 text-[#F43F5E]" : "group-hover:text-[#E8D5B5]"
+                className={`w-4 h-4 text-[#6B4632] shrink-0 transition-transform duration-200 ${
+                  isOpen ? "rotate-180 text-[#B42318]" : "group-hover:text-[#111111]"
                 }`}
               />
             </button>
 
-            {/* Rose accent line that expands beneath the question */}
+            {/* Subtle warm accent line */}
             {isOpen && (
-              <div className="h-0.5 w-full bg-gradient-to-r from-[#F43F5E] via-[#FB7185]/60 to-transparent" />
+              <div className="h-0.5 w-full bg-[#B42318]/20" />
             )}
 
             {isOpen && (
-              <div className="px-6 pb-5 pt-3 text-xs sm:text-sm text-[#BBAE9F] leading-relaxed font-light">
+              <div className="px-6 pb-5 pt-3 text-xs sm:text-sm text-[#6B4632] leading-relaxed font-light">
                 {faq.answer}
               </div>
             )}
@@ -106,5 +106,5 @@ export function FAQAccordion() {
     </div>
   );
 }
-export default FAQAccordion;
 
+export default FAQAccordion;

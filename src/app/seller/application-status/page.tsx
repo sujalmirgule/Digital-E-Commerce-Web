@@ -11,7 +11,8 @@ import {
   Store,
   RefreshCw,
   ShoppingBag,
-  ExternalLink,
+  ShieldCheck,
+  FileText,
 } from "lucide-react";
 import { SpatialBackground } from "@/components/ui/SpatialBackground";
 import { MarketplaceNavbar } from "@/components/ui/MarketplaceNavbar";
@@ -67,7 +68,6 @@ export default function SellerApplicationStatusPage() {
       setUser(authUser);
 
       if (authUser.hasSellerProfile) {
-        // Try fetching seller profile details
         try {
           const profRes = await fetch("/api/v1/seller/profile", {
             headers: { Authorization: `Bearer ${token}` },
@@ -80,8 +80,9 @@ export default function SellerApplicationStatusPage() {
           // Fallback gracefully
         }
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to load application status");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to load application status";
+      setError(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,25 +102,25 @@ export default function SellerApplicationStatusPage() {
     <SpatialBackground>
       <MarketplaceNavbar />
 
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-28 relative">
-        <div className="w-full max-w-xl">
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative">
+        <div className="w-full max-w-xl mx-auto">
           {loading ? (
-            <div className="p-12 text-center text-xs text-[#BBAE9F]">
-              Loading application records...
+            <div className="p-12 text-center text-xs font-mono text-[#6B4632]">
+              Verifying creator status records...
             </div>
           ) : !user?.hasSellerProfile ? (
-            <div className="rounded-3xl border border-[#3A2930] bg-[#211815] p-8 text-center space-y-4 shadow-2xl">
-              <div className="w-14 h-14 rounded-2xl bg-[#1B101B] border border-[#3A2930] flex items-center justify-center text-[#E8D5B5] mx-auto">
+            <div className="rounded-2xl border border-[#E6DBD1] bg-[#FFFFFF] p-8 sm:p-10 text-center space-y-4 shadow-sm">
+              <div className="w-14 h-14 rounded-full bg-[#F3E9DD] border border-[#D8BFA5] flex items-center justify-center text-[#3B2418] mx-auto">
                 <Store className="w-7 h-7" />
               </div>
-              <h1 className="text-2xl font-editorial text-[#F7EFE2]">No Active Seller Application</h1>
-              <p className="text-xs text-[#BBAE9F] max-w-md mx-auto leading-relaxed">
+              <h1 className="font-serif text-2xl font-medium text-[#111111]">No Active Seller Application</h1>
+              <p className="text-xs text-[#6B4632] max-w-md mx-auto leading-relaxed font-light">
                 You haven&apos;t submitted a creator application yet. Apply to become a seller and begin publishing digital assets.
               </p>
               <div className="pt-2">
                 <Link
-                  href="/seller/signup"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] transition-colors"
+                  href="/signup/seller"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-colors"
                 >
                   <span>Apply Now</span>
                   <ArrowRight className="w-4 h-4" />
@@ -127,64 +128,64 @@ export default function SellerApplicationStatusPage() {
               </div>
             </div>
           ) : user.sellerStatus === "APPROVED" ? (
-            <div className="rounded-3xl border border-[#3A2930] bg-[#211815] p-8 text-center space-y-5 shadow-2xl">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+            <div className="rounded-2xl border border-[#E6DBD1] bg-[#FFFFFF] p-8 sm:p-10 text-center space-y-5 shadow-sm">
+              <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mx-auto">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <div>
-                <span className="text-[10px] font-mono tracking-widest uppercase text-emerald-400 font-bold block mb-1">
-                  Verified Creator Profile
+                <span className="text-[10px] font-mono tracking-widest uppercase text-emerald-700 font-bold block mb-1">
+                  VERIFIED CREATOR PROFILE
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-editorial text-[#F7EFE2]">
+                <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#111111]">
                   Your Store is Approved!
                 </h1>
               </div>
-              <p className="text-xs sm:text-sm text-[#BBAE9F] max-w-md mx-auto leading-relaxed font-light">
-                Congratulations! Platform administration has verified your creator credentials for{" "}
-                <strong className="text-[#E8D5B5] font-medium">{profile?.storeName || "your studio"}</strong>. You have full access to publish products and monitor ledger earnings.
+              <p className="text-xs sm:text-sm text-[#6B4632] max-w-md mx-auto leading-relaxed font-light">
+                Congratulations! Administration has verified your seller profile for{" "}
+                <strong className="text-[#111111] font-semibold">{profile?.storeName || "your studio"}</strong>. You have full access to publish products and manage earnings.
               </p>
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
                   href="/seller"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] shadow-lg shadow-[#F43F5E]/30 transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] shadow-sm transition-all"
                 >
                   <span>Enter Seller Studio</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   href="/dashboard"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-xs font-medium text-[#BBAE9F] hover:text-[#F7EFE2] border border-[#3A2930] hover:bg-[#2B201C] transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-xs font-mono uppercase tracking-wider font-medium text-[#6B4632] hover:text-[#111111] border border-[#E6DBD1] hover:bg-[#FAF8F4] transition-all"
                 >
                   <span>Buyer Hub</span>
                 </Link>
               </div>
             </div>
           ) : user.sellerStatus === "REJECTED" ? (
-            <div className="rounded-3xl border border-rose-900/40 bg-[#211815] p-8 text-center space-y-5 shadow-2xl">
-              <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mx-auto">
+            <div className="rounded-2xl border border-[#B42318]/30 bg-[#FFFFFF] p-8 sm:p-10 text-center space-y-5 shadow-sm">
+              <div className="w-16 h-16 rounded-full bg-[#FEF3F2] border border-[#B42318]/20 flex items-center justify-center text-[#B42318] mx-auto">
                 <ShieldAlert className="w-8 h-8" />
               </div>
               <div>
-                <span className="text-[10px] font-mono tracking-widest uppercase text-rose-400 font-bold block mb-1">
-                  Application Decision
+                <span className="text-[10px] font-mono tracking-widest uppercase text-[#B42318] font-bold block mb-1">
+                  APPLICATION DECISION
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-editorial text-rose-200">
+                <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#111111]">
                   Seller Application Not Approved
                 </h1>
               </div>
-              <p className="text-xs sm:text-sm text-[#BBAE9F] max-w-md mx-auto leading-relaxed font-light">
+              <p className="text-xs sm:text-sm text-[#6B4632] max-w-md mx-auto leading-relaxed font-light">
                 Your creator application did not satisfy our verification guidelines or compliance requirements. You can continue purchasing digital assets from the marketplace or contact support for clarification.
               </p>
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
                   href="/dashboard"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-xs font-medium text-white bg-[#2B201C] border border-[#3A2930] hover:border-[#E8D5B5]/50 transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-all"
                 >
                   <span>Return to Buyer Hub</span>
                 </Link>
                 <Link
-                  href="/products"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full text-xs font-medium text-[#BBAE9F] hover:text-[#F7EFE2] border border-[#3A2930] transition-all"
+                  href="/discover"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-xs font-mono uppercase tracking-wider font-medium text-[#6B4632] hover:text-[#111111] border border-[#E6DBD1] hover:bg-[#FAF8F4] transition-all"
                 >
                   <span>Browse Products</span>
                 </Link>
@@ -192,38 +193,38 @@ export default function SellerApplicationStatusPage() {
             </div>
           ) : (
             /* PENDING STATUS */
-            <div className="rounded-3xl border border-[#3A2930] bg-[#211815] p-8 text-center space-y-6 shadow-2xl shadow-black/80">
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto">
+            <div className="rounded-2xl border border-[#E6DBD1] bg-[#FFFFFF] p-8 sm:p-10 text-center space-y-6 shadow-sm">
+              <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 mx-auto">
                 <Clock className="w-8 h-8" />
               </div>
 
               <div>
-                <span className="text-[10px] font-mono tracking-widest uppercase text-amber-400 font-bold block mb-1">
-                  Verification in Progress
+                <span className="text-[10px] font-mono tracking-widest uppercase text-amber-800 font-bold block mb-1">
+                  VERIFICATION IN PROGRESS
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-editorial text-[#F7EFE2]">
-                  Application Under Review
+                <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#111111]">
+                  Your seller application is under review.
                 </h1>
               </div>
 
-              <p className="text-xs sm:text-sm text-[#BBAE9F] max-w-md mx-auto leading-relaxed font-light">
+              <p className="text-xs sm:text-sm text-[#6B4632] max-w-md mx-auto leading-relaxed font-light">
                 Your store profile for{" "}
-                <strong className="text-[#E8D5B5] font-medium">{profile?.storeName || "your studio"}</strong> is currently undergoing administrative compliance and KYC verification.
+                <strong className="text-[#111111] font-semibold">{profile?.storeName || "your studio"}</strong> is currently undergoing administrative compliance and KYC verification.
               </p>
 
               {/* Status Details Card */}
-              <div className="p-4 rounded-2xl bg-[#1B101B] border border-[#3A2930] text-left space-y-2.5 text-xs">
+              <div className="p-4 rounded-xl bg-[#FAF8F4] border border-[#E6DBD1] text-left space-y-2 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#BBAE9F]">Review Queue:</span>
-                  <span className="text-amber-400 font-mono font-medium">PENDING_ADMIN_APPROVAL</span>
+                  <span className="text-[#6B4632]">Review Status:</span>
+                  <span className="text-amber-800 font-mono font-bold">PENDING_ADMIN_APPROVAL</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[#BBAE9F]">Store Identifier:</span>
-                  <span className="text-[#F7EFE2] font-mono">{profile?.storeSlug || "Registered"}</span>
+                  <span className="text-[#6B4632]">Store Identifier:</span>
+                  <span className="text-[#111111] font-mono">{profile?.storeSlug || "Registered"}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[#BBAE9F]">SLA Timeline:</span>
-                  <span className="text-[#E8D5B5]">24 - 48 business hours</span>
+                  <span className="text-[#6B4632]">Estimated Review Window:</span>
+                  <span className="text-[#3B2418] font-mono">24 – 48 business hours</span>
                 </div>
               </div>
 
@@ -232,14 +233,14 @@ export default function SellerApplicationStatusPage() {
                   type="button"
                   onClick={handleRefresh}
                   disabled={refreshing}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs font-medium text-[#F7EFE2] bg-[#2B201C] border border-[#3A2930] hover:border-[#E8D5B5]/50 transition-all disabled:opacity-50"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-md text-xs font-mono uppercase tracking-wider font-medium text-[#111111] bg-[#FAF8F4] border border-[#E6DBD1] hover:border-[#3B2418] transition-all disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
                   <span>{refreshing ? "Checking Status..." : "Refresh Status"}</span>
                 </button>
                 <Link
                   href="/dashboard"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-xs font-medium text-white bg-[#F43F5E] hover:bg-[#FB7185] transition-all"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-all"
                 >
                   <span>Go to Buyer Hub</span>
                   <ArrowRight className="w-3.5 h-3.5" />

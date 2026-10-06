@@ -11,36 +11,77 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // Velvet Market Design System Tokens
+        // Warm Editorial Digital-Commerce Tokens
+        warmBrown: {
+          DEFAULT: "#6B4632",
+          50: "#FAF6F3",
+          100: "#F3E9DD",
+          200: "#E5D2BE",
+          300: "#D8BFA5",
+          400: "#A98165",
+          500: "#86583E",
+          600: "#6B4632",
+          700: "#553727",
+          800: "#3B2418",
+          900: "#28170E",
+        },
+        deepBrown: {
+          DEFAULT: "#3B2418",
+          800: "#4A2E20",
+          900: "#3B2418",
+          950: "#25160E",
+        },
+        sand: "#D8BFA5",
+        warmBeige: "#F3E9DD",
+        offWhite: "#FAF8F4",
+        pureWhite: "#FFFFFF",
+        ink: {
+          DEFAULT: "#111111",
+          pure: "#111111",
+          soft: "#1A1715",
+          muted: "#4A4540",
+          faint: "#7A736B",
+        },
+        accentRed: {
+          DEFAULT: "#B42318",
+          light: "#D92D20",
+          dark: "#912018",
+          muted: "#C94A3A",
+        },
+        mutedRed: "#C94A3A",
+        editorialBorder: "#E6DBD1",
+        editorialBorderDark: "#3B2418",
+
+        // Velvet Market Design System Tokens (Preserved for Dashboard compatibility)
         plum: {
-          950: "#120A12", // Main Deep Plum background
-          900: "#1B101B", // Secondary sections & surfaces
+          950: "#120A12",
+          900: "#1B101B",
           850: "#231523",
           800: "#2D1B2D",
         },
         mocha: {
           950: "#181210",
-          900: "#211815", // Dark Mocha - primary cards & panels
+          900: "#211815",
           850: "#261C18",
-          800: "#2B201C", // Elevated Mocha - hover & modals
+          800: "#2B201C",
           750: "#322521",
           700: "#3A2B26",
         },
         cream: {
           50: "#FDFBF7",
-          100: "#F7EFE2", // Soft Cream - main text & headings
-          200: "#E8D5B5", // Cream - signature highlight & accent
+          100: "#F7EFE2",
+          200: "#E8D5B5",
           300: "#DAC39F",
-          400: "#BBAE9F", // Muted Cream - secondary text
+          400: "#BBAE9F",
           500: "#9E9080",
         },
         rose: {
           300: "#FDA4AF",
-          400: "#FB7185", // Soft Rose - hover & highlights
-          500: "#F43F5E", // Primary Rose - signature CTA
+          400: "#FB7185",
+          500: "#F43F5E",
           600: "#E11D48",
           700: "#BE123C",
-          800: "#9F1239", // Deep Rose - pressed & active states
+          800: "#9F1239",
           900: "#881337",
         },
         velvet: {
@@ -59,7 +100,6 @@ const config: Config = {
           success: "#86A989",
           error: "#E57373",
         },
-        // Backward compatibility mappings for existing component classes
         brand: {
           50: "#FDFBF7",
           100: "#F7EFE2",

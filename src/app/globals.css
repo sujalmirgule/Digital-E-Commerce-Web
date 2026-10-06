@@ -3,24 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --background: #120A12;
-  --foreground: #F7EFE2;
-  --color-plum-deep: #120A12;
-  --color-plum: #1B101B;
-  --color-mocha-dark: #211815;
-  --color-mocha-elevated: #2B201C;
-  --color-cream-accent: #E8D5B5;
-  --color-cream-soft: #F7EFE2;
-  --color-cream-muted: #BBAE9F;
-  --color-rose-primary: #F43F5E;
-  --color-rose-soft: #FB7185;
-  --color-rose-deep: #9F1239;
-  --color-border: #3A2930;
+  --background: #FAF8F4;
+  --foreground: #111111;
+  --color-warm-brown: #6B4632;
+  --color-deep-brown: #3B2418;
+  --color-sand: #D8BFA5;
+  --color-warm-beige: #F3E9DD;
+  --color-off-white: #FAF8F4;
+  --color-pure-white: #FFFFFF;
+  --color-black: #111111;
+  --color-soft-black: #1A1715;
+  --color-accent-red: #B42318;
+  --color-muted-red: #C94A3A;
+  --color-editorial-border: #E6DBD1;
 }
 
 html {
   scroll-behavior: smooth;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -31,24 +31,25 @@ body {
   padding: 0;
   min-height: 100vh;
   overflow-x: hidden;
-  background-color: #120A12;
+  background-color: #FAF8F4;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Luxury Velvet Market custom scrollbar */
+/* Warm Editorial custom scrollbar */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #120A12;
+  background: #FAF8F4;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2B201C;
+  background: #D8BFA5;
   border-radius: 9999px;
-  border: 1px solid #3A2930;
+  border: 1px solid #FAF8F4;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #F43F5E;
+  background: #6B4632;
 }
 
 /* Editorial Typography utilities */

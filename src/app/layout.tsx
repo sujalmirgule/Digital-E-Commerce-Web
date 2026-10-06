@@ -15,9 +15,9 @@ const serif = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Marketify — Digital Product Marketplace",
+  title: "Folio — Digital Products & Creator Marketplace",
   description:
-    "Good digital products deserve to be discovered. Discover, buy and sell premium digital products with instant access and verified creators.",
+    "Discover digital products made to move your work forward. Templates, design assets, developer kits, and guides created by independent sellers.",
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sans.variable} ${serif.variable}`}>
-      <body className="antialiased min-h-screen bg-[#120A12] text-[#F7EFE2] selection:bg-[#F43F5E]/30 selection:text-[#F7EFE2]">
+      <body className="antialiased min-h-screen bg-[#FAF8F4] text-[#111111] selection:bg-[#D8BFA5]/50 selection:text-[#111111]">
         {children}
       </body>
     </html>
