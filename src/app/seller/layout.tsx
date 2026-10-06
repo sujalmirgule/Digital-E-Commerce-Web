@@ -18,26 +18,28 @@ import {
   ChevronDown,
   Menu,
   X,
-  PlusCircle,
+  Plus,
+  Store,
+  User,
 } from "lucide-react";
 import { SellerAuthProvider, useSellerAuth } from "./SellerAuthContext";
+import { MarketplaceBrandLogo } from "@/components/ui/MarketplaceBrandLogo";
 
 const SELLER_NAV = [
-  { href: "/seller", label: "Dashboard", icon: Layers },
+  { href: "/seller", label: "Overview", icon: Layers },
   { href: "/seller/products", label: "Products", icon: Package },
-  { href: "/seller/orders", label: "Orders", icon: ShoppingBag },
   { href: "/seller/sales", label: "Sales", icon: TrendingUp },
   { href: "/seller/earnings", label: "Earnings", icon: Receipt },
-  { href: "/seller/ledger", label: "Ledger", icon: BarChart3 },
+  { href: "/seller/orders", label: "Orders", icon: ShoppingBag },
   { href: "/seller/reviews", label: "Reviews", icon: Star },
-  { href: "/seller/profile", label: "Profile", icon: Settings },
+  { href: "/seller/profile", label: "Profile", icon: User },
   { href: "/seller/settings", label: "Settings", icon: Settings },
 ];
 
 function SellerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, profile, isApproved, token, loading, logout, login } = useSellerAuth();
+  const { user, profile, isApproved, token, loading, logout } = useSellerAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,62 +67,57 @@ function SellerShell({ children }: { children: React.ReactNode }) {
 
   if (loading || !token) {
     return (
-      <div className="min-h-screen bg-[#120A12] flex items-center justify-center text-xs text-[#BBAE9F]">
+      <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center text-sm font-bold text-[#8A6048]">
         Authenticating creator workspace...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#120A12] text-[#F7EFE2] flex flex-col md:flex-row relative pb-16 md:pb-0">
-      {/* Desktop Sidebar matching reference */}
-      <aside className="hidden md:flex flex-col w-60 bg-[#120A12] border-r border-[#3A2930] p-4 lg:p-5 shrink-0">
-        {/* Brand: Marketify */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#3A2930]">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#211815] border border-[#3A2930]">
-              <span className="w-2 h-2 rounded-full bg-[#F43F5E] shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-            </div>
-            <span className="text-base font-medium tracking-tight text-[#F7EFE2] font-editorial">
-              Marketify
-            </span>
-          </Link>
-          <span className="text-[10px] font-mono tracking-wider px-2 py-0.5 rounded-full bg-[#211815] text-[#F43F5E] border border-[#3A2930]">
-            Studio
+    <div className="min-h-screen bg-[#FAF7F2] text-[#151311] flex flex-col md:flex-row relative">
+      {/* ============================================================== */}
+      {/* DESKTOP SIDEBAR (Deep Brown / Cream / Off-White)                */}
+      {/* ============================================================== */}
+      <aside className="hidden md:flex flex-col w-64 bg-[#FFFFFF] border-r border-[#C8AA91]/50 p-5 shrink-0 min-h-screen">
+        {/* Brand Header */}
+        <div className="flex items-center justify-between pb-5 border-b border-[#E6DBD1]">
+          <MarketplaceBrandLogo size="sm" />
+          <span className="text-[10px] font-sans font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md bg-[#F2E7DB] text-[#3B261C]">
+            CREATOR
           </span>
         </div>
 
-        {/* Sidebar Search Input (as shown in reference) */}
-        <form onSubmit={handleSearch} className="relative my-3.5">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#BBAE9F] pointer-events-none" />
+        {/* Sidebar Search Input */}
+        <form onSubmit={handleSearch} className="relative my-4">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8A6048] pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search products..."
-            className="w-full text-xs pl-8 pr-3 py-1.5 rounded-xl bg-[#211815] border border-[#3A2930] text-[#F7EFE2] placeholder-[#BBAE9F]/50 focus:outline-none focus:border-[#E8D5B5] transition-all font-light"
+            className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#C8AA91]/50 text-[#151311] placeholder-[#8A6048]/70 focus:outline-none focus:border-[#3B261C] transition-all font-medium"
           />
         </form>
 
-        {/* Navigation Links with Solid Rose Active Pill */}
-        <nav className="flex-1 space-y-1 pt-1">
+        {/* Navigation Links */}
+        <nav className="flex-1 space-y-1.5 pt-1">
           {SELLER_NAV.map((item) => {
             const isActive =
               item.href === "/seller"
                 ? pathname === "/seller"
-                : pathname.startsWith(item.href.split("?")[0]);
+                : pathname.startsWith(item.href);
             const Icon = item.icon;
             return (
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs tracking-wide transition-all duration-200 ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-bold tracking-wide transition-all duration-200 ${
                   isActive
-                    ? "bg-[#F43F5E] text-white font-medium shadow-md shadow-[#F43F5E]/30"
-                    : "text-[#BBAE9F] hover:bg-[#211815] hover:text-[#F7EFE2]"
+                    ? "bg-[#3B261C] text-[#FAF7F2] shadow-sm"
+                    : "text-[#684332] hover:bg-[#F2E7DB] hover:text-[#151311]"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-[#BBAE9F]"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-[#C46A4A]" : "text-[#8A6048]"}`} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -128,113 +125,123 @@ function SellerShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Footer Actions */}
-        <div className="pt-4 border-t border-[#3A2930] space-y-1.5">
+        <div className="pt-4 border-t border-[#E6DBD1] space-y-2">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#BBAE9F] hover:text-[#F7EFE2] hover:bg-[#211815] transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-[#684332] hover:text-[#151311] hover:bg-[#F2E7DB] transition-colors"
           >
-            <ShoppingBag className="w-3.5 h-3.5 text-[#E8D5B5]" />
+            <ShoppingBag className="w-4 h-4 text-[#8A6048]" />
             <span>Switch to Buyer Hub</span>
           </Link>
           {user && (
             <button
               onClick={logout}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#FB7185] hover:bg-rose-500/10 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-[#A94432] hover:bg-[#A94432]/10 transition-colors"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
             </button>
           )}
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#120A12]">
-        {/* Top Header with Search and Profile */}
-        <header className="h-16 border-b border-[#3A2930] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 bg-[#120A12]/95 backdrop-blur-sm sticky top-0 z-30">
-          {/* Search bar */}
-          <form onSubmit={handleSearch} className="flex-1 max-w-md relative">
-            <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#BBAE9F] pointer-events-none" />
+      {/* ============================================================== */}
+      {/* MAIN CONTENT AREA                                              */}
+      {/* ============================================================== */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#FAF7F2]">
+        {/* Top Header */}
+        <header className="h-16 border-b border-[#C8AA91]/50 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 bg-[#FFFFFF] sticky top-0 z-30 shadow-xs">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-xl text-[#3B261C] border border-[#C8AA91]/60"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+
+          {/* Search bar on tablet/desktop */}
+          <form onSubmit={handleSearch} className="hidden sm:flex flex-1 max-w-sm relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8A6048] pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
-              className="w-full text-xs pl-9 pr-3 py-2 rounded-full bg-[#211815] border border-[#3A2930] text-[#F7EFE2] placeholder-[#BBAE9F]/50 focus:outline-none focus:border-[#E8D5B5] transition-all font-light"
+              placeholder="Search your inventory..."
+              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#C8AA91]/60 text-[#151311] placeholder-[#8A6048]/70 focus:outline-none focus:border-[#3B261C] transition-all font-medium"
             />
           </form>
 
-          {/* Header Right Actions matching reference: Bell + Sujal ▾ */}
-          <div className="flex items-center gap-3">
+          {/* Header Right Actions: + New Product, Bell, Profile */}
+          <div className="flex items-center gap-3 ml-auto">
+            {/* Visual Prominent Action: + New Product */}
             <Link
-              href="/notifications"
-              className="w-8 h-8 rounded-full bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/50 flex items-center justify-center text-[#BBAE9F] hover:text-[#F7EFE2] transition-colors relative"
-              aria-label="Notifications"
+              href="/seller/products/new"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-extrabold uppercase tracking-wider text-[#FAF7F2] bg-[#3B261C] hover:bg-[#684332] active:bg-[#211D1A] transition-all shadow-sm"
             >
-              <Bell className="w-3.5 h-3.5" />
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F43F5E] absolute top-1.5 right-1.5" />
+              <Plus className="w-4 h-4 text-[#C46A4A]" />
+              <span>New Product</span>
             </Link>
 
-            {/* Profile Pill */}
+            {/* Notifications */}
+            <Link
+              href="/notifications"
+              className="w-9 h-9 rounded-xl bg-[#FAF7F2] border border-[#C8AA91]/60 hover:border-[#3B261C] flex items-center justify-center text-[#684332] hover:text-[#151311] transition-colors relative"
+              aria-label="Notifications"
+            >
+              <Bell className="w-4 h-4" />
+              <span className="w-2 h-2 rounded-full bg-[#A94432] absolute top-2 right-2" />
+            </Link>
+
+            {/* Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-[#211815] border border-[#3A2930] hover:border-[#E8D5B5]/50 text-xs text-[#F7EFE2] transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#C8AA91]/60 hover:border-[#3B261C] text-xs text-[#151311] font-bold transition-all"
               >
-                <div className="w-6 h-6 rounded-full bg-[#2B201C] border border-[#3A2930] flex items-center justify-center text-[10px] font-bold text-[#E8D5B5] overflow-hidden">
-                  <span>{displayName[0]?.toUpperCase()}</span>
+                <div className="w-6 h-6 rounded-lg bg-[#3B261C] text-[#FAF7F2] flex items-center justify-center text-[11px] font-bold">
+                  {displayName[0]?.toUpperCase()}
                 </div>
-                <span className="font-medium text-xs text-[#F7EFE2]">{displayName}</span>
-                <ChevronDown className="w-3 h-3 text-[#BBAE9F]" />
+                <span className="truncate max-w-[120px]">{displayName}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-[#8A6048]" />
               </button>
 
               {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-[#211815] border border-[#3A2930] py-2 shadow-2xl z-50 text-xs text-[#F7EFE2]">
-                  <div className="px-3.5 py-2 border-b border-[#3A2930]/70">
-                    <p className="font-medium truncate">{displayName}</p>
-                    <p className="text-[10px] text-[#BBAE9F] truncate">Verified Creator</p>
+                <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-[#FFFFFF] border border-[#C8AA91] py-2 shadow-2xl z-50 text-xs">
+                  <div className="px-3.5 py-2 border-b border-[#E6DBD1]">
+                    <p className="font-bold text-[#151311] truncate">{displayName}</p>
+                    <p className="text-[11px] text-[#8A6048] font-medium">Verified Creator Store</p>
                   </div>
                   <Link
                     href="/seller/products/new"
                     onClick={() => setUserDropdownOpen(false)}
-                    className="block px-3.5 py-2 text-[#F43F5E] hover:bg-[#2B201C] transition-colors"
+                    className="block px-3.5 py-2 font-bold text-[#A94432] hover:bg-[#F2E7DB] transition-colors"
                   >
-                    + Add New Product
+                    + New Product
                   </Link>
                   <Link
                     href="/seller/products"
                     onClick={() => setUserDropdownOpen(false)}
-                    className="block px-3.5 py-2 text-[#BBAE9F] hover:text-[#F7EFE2] hover:bg-[#2B201C] transition-colors"
+                    className="block px-3.5 py-2 text-[#3B261C] hover:bg-[#F2E7DB] transition-colors"
                   >
-                    Manage Inventory
+                    Product Inventory
                   </Link>
                   <Link
                     href="/seller/earnings"
                     onClick={() => setUserDropdownOpen(false)}
-                    className="block px-3.5 py-2 text-[#BBAE9F] hover:text-[#F7EFE2] hover:bg-[#2B201C] transition-colors"
+                    className="block px-3.5 py-2 text-[#3B261C] hover:bg-[#F2E7DB] transition-colors"
                   >
                     Earnings & Payouts
                   </Link>
-                  <div className="pt-1 mt-1 border-t border-[#3A2930]/70">
-                    {user ? (
-                      <button
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          logout();
-                        }}
-                        className="w-full text-left px-3.5 py-2 text-[#FB7185] hover:bg-rose-500/10 transition-colors"
-                      >
-                        Sign Out
-                      </button>
-                    ) : (
-                      <Link
-                        href="/login"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="block px-3.5 py-2 text-[#E8D5B5] hover:bg-[#2B201C]"
-                      >
-                        Sign In
-                      </Link>
-                    )}
+                  <div className="pt-1 mt-1 border-t border-[#E6DBD1]">
+                    <button
+                      onClick={() => {
+                        setUserDropdownOpen(false);
+                        logout();
+                      }}
+                      className="w-full text-left px-3.5 py-2 font-bold text-[#A94432] hover:bg-[#A94432]/10 transition-colors"
+                    >
+                      Sign Out
+                    </button>
                   </div>
                 </div>
               )}
@@ -242,50 +249,27 @@ function SellerShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Page Children */}
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-[#FFFFFF] border-b border-[#C8AA91] p-4 space-y-2 z-40">
+            {SELLER_NAV.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-[#3B261C] hover:bg-[#F2E7DB]"
+              >
+                <item.icon className="w-4 h-4 text-[#8A6048]" />
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Page Children Container */}
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1">
           {children}
         </div>
-      </div>
-
-      {/* Mobile Bottom Navigation Bar (as shown in reference bottom-right) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-[#120A12]/95 backdrop-blur-xl border-t border-[#3A2930] px-4 flex items-center justify-around text-[10px] font-mono">
-        <Link
-          href="/seller"
-          className={`flex flex-col items-center gap-1 ${
-            pathname === "/seller" ? "text-[#F43F5E]" : "text-[#BBAE9F] hover:text-[#F7EFE2]"
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>Home</span>
-        </Link>
-        <Link
-          href="/seller/products"
-          className={`flex flex-col items-center gap-1 ${
-            pathname.startsWith("/seller/products") ? "text-[#F43F5E]" : "text-[#BBAE9F] hover:text-[#F7EFE2]"
-          }`}
-        >
-          <Package className="w-4 h-4" />
-          <span>Products</span>
-        </Link>
-        <Link
-          href="/seller/sales"
-          className={`flex flex-col items-center gap-1 ${
-            pathname === "/seller/sales" ? "text-[#F43F5E]" : "text-[#BBAE9F] hover:text-[#F7EFE2]"
-          }`}
-        >
-          <TrendingUp className="w-4 h-4" />
-          <span>Orders</span>
-        </Link>
-        <Link
-          href="/seller/profile"
-          className={`flex flex-col items-center gap-1 ${
-            pathname === "/seller/profile" ? "text-[#F43F5E]" : "text-[#BBAE9F] hover:text-[#F7EFE2]"
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Studio</span>
-        </Link>
       </div>
     </div>
   );

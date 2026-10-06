@@ -50,19 +50,20 @@ export default function AdminOverviewPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/v1/admin/overview", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetchWithAuth("/api/v1/admin/overview");
       const resJson = await res.json();
       if (res.ok && resJson.success) {
         setData(resJson.data);
+      } else {
+        setError(resJson.error?.message || "Failed to load overview data");
       }
     } catch (err: unknown) {
       console.error("Overview error", err);
+      setError("An unexpected network error occurred while loading overview.");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, fetchWithAuth]);
 
   useEffect(() => {
     if (token) {

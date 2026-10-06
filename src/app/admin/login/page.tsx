@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
         localStorage.setItem("admin_token", token);
         localStorage.setItem("token", token);
         document.cookie = `auth_token=${token}; path=/; max-age=604800; SameSite=Lax`;
-        router.push("/admin");
+        window.location.href = "/admin";
       } else {
         setError("Invalid authentication token received.");
         setLoading(false);

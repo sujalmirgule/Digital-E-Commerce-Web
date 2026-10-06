@@ -35,7 +35,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load token from localStorage on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem("token") || localStorage.getItem("admin_token");
+    const savedToken = localStorage.getItem("admin_token") || localStorage.getItem("token");
     if (savedToken) {
       setToken(savedToken);
     } else {
@@ -64,9 +64,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = await res.json();
-      const profile = data.data;
+      const profile = data.data?.user || data.data;
 
-      if (profile.role !== "ADMIN") {
+      if (!profile || profile.role !== "ADMIN") {
         throw new Error("Access denied: Your account does not possess administrative privileges");
       }
 
@@ -75,7 +75,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         fullName: profile.fullName,
         email: profile.email,
         role: profile.role,
-        isActive: profile.isActive,
+        isActive: profile.isActive ?? true,
       });
     } catch (err: any) {
       setError(err.message || "Authentication error");

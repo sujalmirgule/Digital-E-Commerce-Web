@@ -55,7 +55,7 @@ function LoginForm() {
         // Strict Role-Based Redirection Matrix
         if (user?.role === "ADMIN") {
           localStorage.setItem("admin_token", token);
-          router.push("/admin");
+          window.location.href = "/admin";
         } else if (user?.hasSellerProfile) {
           localStorage.setItem("seller_token", token);
           if (user?.sellerStatus === "APPROVED") {

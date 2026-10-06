@@ -53,10 +53,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   React.useEffect(() => {
-    if (!loading && (!token || !isAdmin)) {
+    if (pathname !== "/admin/login" && !loading && (!token || !isAdmin)) {
       router.push("/admin/login");
     }
-  }, [loading, token, isAdmin, router]);
+  }, [loading, token, isAdmin, router, pathname]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +64,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       router.push(`/admin/products?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
+
+  // Dedicated admin login page must render without being blocked by admin layout barrier
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
 
   // If not logged in as admin yet, show loading while redirecting to /admin/login
   if (loading || !token || !isAdmin) {

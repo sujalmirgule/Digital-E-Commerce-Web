@@ -124,9 +124,7 @@ export function MarketplaceNavbar() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/discover?query=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      router.push("/discover");
+      router.push(`/discover?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -154,8 +152,8 @@ export function MarketplaceNavbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
         isScrolled
-          ? "bg-[#FAF8F4]/95 backdrop-blur-md border-b border-[#E6DBD1] py-3 shadow-sm"
-          : "bg-[#FAF8F4] border-b border-[#E6DBD1]/80 py-4"
+          ? "bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#C8AA91]/60 py-3 shadow-[0_2px_12px_rgba(59,38,28,0.06)]"
+          : "bg-[#FAF7F2] border-b border-[#C8AA91]/40 py-4"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -163,14 +161,14 @@ export function MarketplaceNavbar() {
           {/* LEFT: Brand Logo */}
           <MarketplaceBrandLogo size="md" />
 
-          {/* CENTER: Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+          {/* CENTER: Strong Typography Navigation */}
+          <nav className="hidden lg:flex items-center gap-2 xl:gap-3">
             <Link
               href="/discover"
-              className={`text-xs uppercase font-mono tracking-wider px-3 py-1.5 rounded-md transition-colors ${
+              className={`text-[15px] font-bold px-3.5 py-1.5 rounded-lg transition-colors ${
                 pathname === "/discover" || pathname === "/products"
-                  ? "bg-[#F3E9DD] text-[#3B2418] font-bold"
-                  : "text-[#3B2418] hover:bg-[#F3E9DD]/60 hover:text-[#111111]"
+                  ? "bg-[#F2E7DB] text-[#3B261C]"
+                  : "text-[#3B261C] hover:bg-[#F2E7DB]/60 hover:text-[#151311]"
               }`}
             >
               Discover
@@ -181,73 +179,63 @@ export function MarketplaceNavbar() {
               <button
                 type="button"
                 onClick={() => setCategoriesOpen(!categoriesOpen)}
-                className={`text-xs uppercase font-mono tracking-wider px-3 py-1.5 rounded-md flex items-center gap-1 transition-colors ${
+                className={`text-[15px] font-bold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors ${
                   categoriesOpen || pathname.startsWith("/categories")
-                    ? "bg-[#F3E9DD] text-[#3B2418] font-bold"
-                    : "text-[#3B2418] hover:bg-[#F3E9DD]/60 hover:text-[#111111]"
+                    ? "bg-[#F2E7DB] text-[#3B261C]"
+                    : "text-[#3B261C] hover:bg-[#F2E7DB]/60 hover:text-[#151311]"
                 }`}
                 aria-expanded={categoriesOpen}
               >
                 <span>Categories</span>
                 <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                    categoriesOpen ? "rotate-180 text-[#B42318]" : "text-[#6B4632]"
+                  className={`w-4 h-4 transition-transform duration-200 ${
+                    categoriesOpen ? "rotate-180 text-[#C46A4A]" : "text-[#8A6048]"
                   }`}
                 />
               </button>
 
-              {/* Fast Accessible Mega Menu */}
+              {/* Accessible Mega Menu */}
               {categoriesOpen && (
-                <div className="absolute top-full left-0 mt-2 w-[680px] rounded-xl border border-[#E6DBD1] bg-[#FFFFFF] p-6 shadow-xl shadow-black/5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E6DBD1]">
-                    <span className="text-[11px] font-mono uppercase tracking-widest text-[#6B4632] font-semibold">
-                      Explore Categories
+                <div className="absolute top-full left-0 mt-3 w-[720px] rounded-2xl border border-[#C8AA91]/70 bg-[#FFFFFF] p-6 shadow-2xl shadow-[#3B261C]/15 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex items-center justify-between pb-3.5 mb-4 border-b border-[#E6DBD1]">
+                    <span className="text-[12px] uppercase font-bold tracking-wider text-[#8A6048]">
+                      Marketplace Categories
                     </span>
                     <Link
-                      href="/categories"
+                      href="/discover"
                       onClick={() => setCategoriesOpen(false)}
-                      className="text-xs font-mono uppercase tracking-wider text-[#B42318] hover:underline font-medium"
+                      className="text-xs font-bold text-[#A94432] hover:underline"
                     >
-                      View All Categories →
+                      View All in Catalog →
                     </Link>
                   </div>
 
                   <div className="grid grid-cols-3 gap-6">
-                    {MARKETPLACE_CATEGORIES.slice(0, 6).map((cat) => (
-                      <div key={cat.id} className="space-y-2">
+                    {MARKETPLACE_CATEGORIES.slice(0, 9).map((cat) => (
+                      <div key={cat.id} className="space-y-1.5">
                         <Link
                           href={`/discover?category=${cat.slug}`}
                           onClick={() => setCategoriesOpen(false)}
-                          className="font-serif font-medium text-sm text-[#111111] hover:text-[#B42318] flex items-center gap-1.5 transition-colors"
+                          className="font-bold text-sm text-[#151311] hover:text-[#A94432] flex items-center gap-1.5 transition-colors"
                         >
                           <span>{cat.name}</span>
                         </Link>
-                        <ul className="space-y-1">
-                          {cat.subCategories.slice(0, 4).map((sub) => (
-                            <li key={sub.slug}>
-                              <Link
-                                href={`/discover?category=${cat.slug}&sub=${sub.slug}`}
-                                onClick={() => setCategoriesOpen(false)}
-                                className="text-xs text-[#6B4632] hover:text-[#111111] transition-colors block"
-                              >
-                                {sub.name}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="text-[12px] text-[#8A6048] line-clamp-1 font-normal">
+                          {cat.description}
+                        </p>
                       </div>
                     ))}
                   </div>
 
-                  <div className="mt-5 pt-3 border-t border-[#E6DBD1] flex items-center justify-between text-xs text-[#6B4632]">
-                    <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-[#B42318]" />
-                      Thousands of independent digital assets and verified resources.
+                  <div className="mt-5 pt-3.5 border-t border-[#E6DBD1] flex items-center justify-between text-xs text-[#8A6048]">
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <Sparkles className="w-3.5 h-3.5 text-[#C46A4A]" />
+                      Thousands of verified digital products by independent creators.
                     </span>
                     <Link
                       href="/signup/seller"
                       onClick={() => setCategoriesOpen(false)}
-                      className="text-[#111111] hover:text-[#B42318] font-mono uppercase text-[11px] font-semibold"
+                      className="text-[#3B261C] hover:text-[#A94432] uppercase text-[11px] font-bold"
                     >
                       List in these categories →
                     </Link>
@@ -257,32 +245,32 @@ export function MarketplaceNavbar() {
             </div>
 
             <Link
-              href="/#customer-benefits"
-              className="text-xs uppercase font-mono tracking-wider px-3 py-1.5 rounded-md text-[#3B2418] hover:bg-[#F3E9DD]/60 hover:text-[#111111] transition-colors"
+              href="/#features"
+              className="text-[15px] font-bold px-3.5 py-1.5 rounded-lg text-[#3B261C] hover:bg-[#F2E7DB]/60 hover:text-[#151311] transition-colors"
             >
-              For Buyers
+              Why Folio
             </Link>
 
             <Link
-              href="/#seller-benefits"
-              className="text-xs uppercase font-mono tracking-wider px-3 py-1.5 rounded-md text-[#3B2418] hover:bg-[#F3E9DD]/60 hover:text-[#111111] transition-colors"
+              href="/#seller-spotlight"
+              className="text-[15px] font-bold px-3.5 py-1.5 rounded-lg text-[#3B261C] hover:bg-[#F2E7DB]/60 hover:text-[#151311] transition-colors"
             >
-              For Sellers
+              Creators
             </Link>
           </nav>
 
-          {/* Search Bar (Fast & Compact) */}
+          {/* Search Bar */}
           <form
             onSubmit={handleSearchSubmit}
             className="hidden md:flex items-center flex-1 max-w-xs relative ml-auto mr-2"
           >
-            <Search className="w-3.5 h-3.5 absolute left-3 text-[#6B4632] pointer-events-none" />
+            <Search className="w-4 h-4 absolute left-3.5 text-[#8A6048] pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search templates, kits, assets..."
-              className="w-full text-xs pl-8 pr-3 py-2 rounded-lg bg-[#FFFFFF] border border-[#E6DBD1] text-[#111111] placeholder-[#A98165] focus:outline-none focus:border-[#3B2418] focus:ring-1 focus:ring-[#3B2418]/20 transition-all"
+              placeholder="Search digital products..."
+              className="w-full text-[13px] pl-9 pr-3.5 py-2 rounded-xl bg-[#FFFFFF] border border-[#C8AA91]/70 text-[#151311] placeholder-[#8A6048]/70 focus:outline-none focus:border-[#3B261C] focus:ring-1 focus:ring-[#3B261C]/30 transition-all font-medium"
             />
           </form>
 
@@ -292,20 +280,20 @@ export function MarketplaceNavbar() {
               <div className="flex items-center gap-2">
                 <Link
                   href={getDashboardLink()}
-                  className="text-xs font-mono uppercase tracking-wider text-[#3B2418] hover:text-[#111111] px-3 py-2 rounded-lg border border-[#E6DBD1] bg-[#FFFFFF] hover:border-[#3B2418] transition-all flex items-center gap-1.5"
+                  className="text-xs font-bold uppercase tracking-wider text-[#3B261C] hover:text-[#151311] px-3.5 py-2 rounded-xl border border-[#C8AA91]/70 bg-[#FFFFFF] hover:border-[#3B261C] transition-all flex items-center gap-1.5 shadow-xs"
                 >
                   {user.role === "ADMIN" ? (
-                    <Shield className="w-3.5 h-3.5 text-[#B42318]" />
+                    <Shield className="w-3.5 h-3.5 text-[#A94432]" />
                   ) : user.hasSellerProfile ? (
-                    <Store className="w-3.5 h-3.5 text-[#6B4632]" />
+                    <Store className="w-3.5 h-3.5 text-[#8A6048]" />
                   ) : (
-                    <User className="w-3.5 h-3.5 text-[#6B4632]" />
+                    <User className="w-3.5 h-3.5 text-[#8A6048]" />
                   )}
                   <span>{getDashboardLabel()}</span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded-lg text-[#6B4632] hover:text-[#B42318] hover:bg-[#F3E9DD] transition-colors"
+                  className="p-2 rounded-xl text-[#8A6048] hover:text-[#A94432] hover:bg-[#F2E7DB] transition-colors"
                   title="Log out"
                   aria-label="Log out"
                 >
@@ -316,33 +304,33 @@ export function MarketplaceNavbar() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="text-xs font-mono uppercase tracking-wider text-[#3B2418] hover:text-[#111111] px-3 py-2 rounded-md transition-colors"
+                  className="text-[14px] font-bold text-[#3B261C] hover:text-[#151311] px-3.5 py-2 rounded-lg transition-colors"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/signup"
-                  className="text-xs font-mono uppercase tracking-wider text-[#111111] hover:text-[#3B2418] px-3.5 py-2 rounded-md border border-[#E6DBD1] bg-[#FFFFFF] hover:border-[#6B4632] transition-colors"
+                  className="text-[14px] font-bold text-[#151311] hover:text-[#3B261C] px-4 py-2 rounded-xl border border-[#C8AA91]/70 bg-[#FFFFFF] hover:border-[#3B261C] transition-colors shadow-xs"
                 >
                   Sign Up
                 </Link>
               </div>
             )}
 
-            {/* Dedicated Strong Seller CTA */}
+            {/* Dedicated Start Selling CTA */}
             <Link
               href="/signup/seller"
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] active:bg-[#000000] transition-colors shadow-sm"
+              className="inline-flex items-center justify-center gap-1.5 px-4.5 py-2.5 rounded-xl text-[14px] font-extrabold text-[#FFFFFF] bg-[#3B261C] hover:bg-[#684332] active:bg-[#211D1A] transition-all shadow-md shadow-[#3B261C]/20"
             >
               <span>Start Selling</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
           {/* Mobile Menu Trigger */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-md text-[#3B2418] hover:text-[#111111] border border-[#E6DBD1] bg-[#FFFFFF]"
+            className="lg:hidden p-2 rounded-xl text-[#3B261C] hover:text-[#151311] border border-[#C8AA91]/70 bg-[#FFFFFF]"
             aria-label="Toggle mobile menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -350,97 +338,83 @@ export function MarketplaceNavbar() {
         </div>
       </div>
 
-      {/* MOBILE DRAWER */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-b border-[#E6DBD1] bg-[#FAF8F4] px-4 pt-4 pb-6 mt-3 shadow-lg animate-in fade-in slide-in-from-top-3 duration-150">
-          <form onSubmit={handleSearchSubmit} className="mb-4 relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#6B4632]" />
+        <div className="lg:hidden fixed inset-x-0 top-[73px] bg-[#FAF7F2] border-b border-[#C8AA91] p-5 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto z-50">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#8A6048]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
-              className="w-full text-sm pl-9 pr-3 py-2 rounded-lg bg-[#FFFFFF] border border-[#E6DBD1] text-[#111111] placeholder-[#A98165] focus:outline-none focus:border-[#3B2418]"
+              placeholder="Search digital products..."
+              className="w-full text-sm pl-10 pr-3.5 py-2.5 rounded-xl bg-[#FFFFFF] border border-[#C8AA91] text-[#151311] font-medium"
             />
           </form>
 
-          <div className="flex flex-col gap-1.5">
+          <nav className="flex flex-col space-y-2 pt-2">
             <Link
               href="/discover"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-[#111111] py-2 px-3 rounded-md hover:bg-[#F3E9DD]"
+              className="text-base font-bold text-[#3B261C] py-2 px-3 rounded-lg hover:bg-[#F2E7DB]"
             >
               Discover Products
             </Link>
+            <div className="py-2 px-3">
+              <span className="text-xs uppercase font-bold text-[#8A6048] tracking-wider block mb-2">
+                Popular Categories
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                {MARKETPLACE_CATEGORIES.slice(0, 8).map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/discover?category=${c.slug}`}
+                    className="text-sm font-semibold text-[#151311] hover:text-[#A94432] py-1"
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
             <Link
-              href="/categories"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-[#111111] py-2 px-3 rounded-md hover:bg-[#F3E9DD]"
+              href="/signup/seller"
+              className="text-base font-bold text-[#A94432] py-2 px-3 rounded-lg hover:bg-[#F2E7DB]"
             >
-              Browse Categories
+              Start Selling Digital Products
             </Link>
-            <Link
-              href="/#customer-benefits"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-[#111111] py-2 px-3 rounded-md hover:bg-[#F3E9DD]"
-            >
-              For Buyers
-            </Link>
-            <Link
-              href="/#seller-benefits"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-[#111111] py-2 px-3 rounded-md hover:bg-[#F3E9DD]"
-            >
-              For Sellers
-            </Link>
+          </nav>
 
-            <div className="h-px bg-[#E6DBD1] my-3" />
-
+          <div className="pt-4 border-t border-[#E6DBD1] flex flex-col gap-2.5">
             {user ? (
-              <div className="flex flex-col gap-2">
+              <>
                 <Link
                   href={getDashboardLink()}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-center text-xs font-mono uppercase tracking-wider text-[#FAF8F4] bg-[#3B2418] py-2.5 rounded-md"
+                  className="w-full py-2.5 text-center rounded-xl bg-[#3B261C] text-[#FFFFFF] font-bold text-sm"
                 >
-                  {getDashboardLabel()} →
+                  {getDashboardLabel()}
                 </Link>
                 <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="text-center text-xs font-mono uppercase text-[#B42318] py-2 rounded-md hover:bg-[#F3E9DD]"
+                  onClick={handleLogout}
+                  className="w-full py-2 text-center text-xs font-bold text-[#A94432]"
                 >
-                  Sign Out
+                  Log Out
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <>
                 <Link
                   href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-center text-xs font-mono uppercase tracking-wider text-[#3B2418] py-2.5 rounded-md border border-[#E6DBD1] bg-[#FFFFFF]"
+                  className="w-full py-2.5 text-center rounded-xl border border-[#C8AA91] bg-[#FFFFFF] text-[#3B261C] font-bold text-sm"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/signup"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-center text-xs font-mono uppercase tracking-wider text-[#111111] py-2.5 rounded-md border border-[#3B2418] bg-[#F3E9DD]"
+                  className="w-full py-2.5 text-center rounded-xl bg-[#3B261C] text-[#FFFFFF] font-bold text-sm"
                 >
-                  Sign Up
+                  Create Account
                 </Link>
-              </div>
+              </>
             )}
-
-            <Link
-              href="/signup/seller"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-center text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] py-3 mt-2 rounded-md bg-[#111111] hover:bg-[#3B2418]"
-            >
-              Start Selling
-            </Link>
           </div>
         </div>
       )}

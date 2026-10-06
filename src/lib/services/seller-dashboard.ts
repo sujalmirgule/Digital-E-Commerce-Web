@@ -245,6 +245,9 @@ export async function getSellerProducts(
 
   if (options?.status) {
     whereClause.status = options.status;
+  } else {
+    // Hide archived products from default active listings
+    whereClause.status = { not: ProductStatus.ARCHIVED };
   }
 
   if (options?.search) {
@@ -453,6 +456,59 @@ export async function updateSellerProduct(
       version: updated.version,
       status: updated.status,
       updatedAt: updated.updatedAt.toISOString(),
+    },
+  };
+}
+
+/**
+ * Safely archive a product owned by the authenticated seller.
+ * Enforces IDOR protection: seller can only archive their own product.
+ * Preserves historical orders, payments, entitlements, and reviews.
+ */
+export async function archiveSellerProduct(
+  sellerProfileId: string,
+  productId: string
+): Promise<{ success: boolean; status: number; product?: any; error?: string; code?: string }> {
+  const existing = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { id: true, sellerId: true, title: true, status: true },
+  });
+
+  if (!existing) {
+    return {
+      success: false,
+      status: 404,
+      code: "PRODUCT_NOT_FOUND",
+      error: "Product not found",
+    };
+  }
+
+  // IDOR Protection: Seller A cannot delete Seller B's product
+  if (existing.sellerId !== sellerProfileId) {
+    return {
+      success: false,
+      status: 403,
+      code: "FORBIDDEN",
+      error: "You are not authorized to delete or archive this product",
+    };
+  }
+
+  // Safe Archive: preserves referential integrity and transaction history
+  const updated = await prisma.product.update({
+    where: { id: productId },
+    data: {
+      status: ProductStatus.ARCHIVED,
+    },
+  });
+
+  return {
+    success: true,
+    status: 200,
+    product: {
+      id: updated.id,
+      title: updated.title,
+      slug: updated.slug,
+      status: updated.status,
     },
   };
 }

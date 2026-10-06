@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useTransition } from "react";
+import React, { useState, useEffect, Suspense, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -11,25 +11,31 @@ import {
   ChevronDown,
   RotateCcw,
   Sparkles,
-  Package,
   ArrowRight,
   Filter,
+  Layers,
+  ChevronLeft,
+  ChevronRight,
+  BookOpen,
+  Store,
 } from "lucide-react";
 import { SpatialBackground } from "@/components/ui/SpatialBackground";
 import { MarketplaceNavbar } from "@/components/ui/MarketplaceNavbar";
 import { MarketplaceFooter } from "@/components/ui/MarketplaceFooter";
 import { ProductCard, ProductCardData } from "@/components/ui/ProductCard";
 import { MARKETPLACE_CATEGORIES } from "@/lib/categories";
-import { getProducts, DEMO_PRODUCTS } from "@/lib/demo/products";
+import { getProducts } from "@/lib/demo/products";
+
+const PRIMARY_NAV_CATEGORIES = MARKETPLACE_CATEGORIES.slice(0, 9);
+const MORE_NAV_CATEGORIES = MARKETPLACE_CATEGORIES.slice(9);
 
 function DiscoverContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  // Filters from URL query params
+  // Filters from URL
   const urlCategory = searchParams.get("category") || "";
-  const urlSub = searchParams.get("sub") || "";
   const urlQuery = searchParams.get("query") || searchParams.get("q") || "";
   const urlMinPrice = searchParams.get("minPrice") || searchParams.get("priceMin") || "";
   const urlMaxPrice = searchParams.get("maxPrice") || searchParams.get("priceMax") || "";
@@ -39,14 +45,28 @@ function DiscoverContent() {
 
   const [products, setProducts] = useState<ProductCardData[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(urlQuery);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
 
-  // Sync search input if URL changes
+  // Sync search input with URL
   useEffect(() => {
     setSearchInput(urlQuery);
   }, [urlQuery]);
+
+  // Click outside to close More dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Fetch real products matching query filters
   useEffect(() => {
@@ -59,7 +79,7 @@ function DiscoverContent() {
           query: urlQuery,
           sort: urlSort,
           page: urlPage,
-          limit: 12,
+          limit: 16,
           allowDemoFallback: true,
         });
 
@@ -84,12 +104,14 @@ function DiscoverContent() {
 
           setProducts(list);
           setTotalCount(result.total);
+          setTotalPages(Math.max(1, Math.ceil(result.total / 16)));
         }
       } catch (err) {
         console.error("Discovery catalog error:", err);
         if (!isCancelled) {
           setProducts([]);
           setTotalCount(0);
+          setTotalPages(1);
         }
       } finally {
         if (!isCancelled) setLoading(false);
@@ -100,7 +122,7 @@ function DiscoverContent() {
     return () => {
       isCancelled = true;
     };
-  }, [urlCategory, urlSub, urlQuery, urlMinPrice, urlMaxPrice, urlRating, urlSort, urlPage]);
+  }, [urlCategory, urlQuery, urlMinPrice, urlMaxPrice, urlRating, urlSort, urlPage]);
 
   // Apply filters to URL
   const updateFilter = (key: string, value: string | null) => {
@@ -132,368 +154,387 @@ function DiscoverContent() {
   };
 
   const hasActiveFilters = Boolean(
-    urlCategory || urlSub || urlQuery || urlMinPrice || urlMaxPrice || urlRating
+    urlCategory || urlQuery || urlMinPrice || urlMaxPrice || urlRating
   );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 w-full">
-      {/* Header Banner */}
-      <div className="mb-10 pb-8 border-b border-[#E6DBD1]">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      {/* ============================================================== */}
+      {/* 1. DISCOVER HEADER                                             */}
+      {/* ============================================================== */}
+      <div className="mb-10 pb-8 border-b border-[#C8AA91]/60">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8BFA5] bg-[#F3E9DD] mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-[#6B4632]" />
-              <span className="text-[11px] font-mono tracking-widest text-[#3B2418] uppercase font-semibold">
-                Marketplace Discovery
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#C8AA91]/70 bg-[#F2E7DB] mb-3">
+              <Sparkles className="w-3.5 h-3.5 text-[#C46A4A]" />
+              <span className="text-[11px] font-sans font-bold tracking-widest text-[#3B261C] uppercase">
+                Digital Marketplace Discovery
               </span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-serif font-medium text-[#111111] tracking-tight">
+            <h1 className="text-3xl sm:text-5xl font-sans font-extrabold text-[#151311] tracking-tight">
               Explore Digital Products
             </h1>
-            <p className="text-sm text-[#6B4632] mt-2 font-light max-w-xl">
-              Discover templates, UI kits, development kits, and resources made by independent creators.
+            <p className="text-sm sm:text-base text-[#684332] mt-2 font-normal max-w-xl">
+              Inspect verified code templates, Figma UI systems, audio packs, and handbooks created by independent makers.
             </p>
           </div>
 
-          {/* Search form */}
-          <form onSubmit={handleSearchSubmit} className="relative w-full md:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-[#6B4632]" />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search catalog..."
-              className="w-full text-xs pl-9 pr-14 py-2.5 rounded-md bg-[#FFFFFF] border border-[#E6DBD1] text-[#111111] placeholder-[#A98165] focus:outline-none focus:border-[#3B2418] transition-all"
-            />
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1.5 px-3 py-1 text-[11px] font-mono uppercase bg-[#111111] text-[#FFFFFF] rounded hover:bg-[#3B2418] transition-colors"
-            >
-              Go
-            </button>
-          </form>
+          {/* Search + Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+            <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-80">
+              <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-[#8A6048]" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search digital products..."
+                className="w-full text-xs sm:text-sm pl-10 pr-14 py-3 rounded-xl bg-[#FFFFFF] border border-[#C8AA91] text-[#151311] placeholder-[#8A6048]/70 focus:outline-none focus:border-[#3B261C] focus:ring-1 focus:ring-[#3B261C]/30 transition-all font-medium"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-2 px-3 py-1.5 text-xs font-bold uppercase bg-[#3B261C] text-[#FAF7F2] rounded-lg hover:bg-[#684332] transition-colors"
+              >
+                Go
+              </button>
+            </form>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/dashboard"
+                className="px-4 py-3 rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider text-[#3B261C] bg-[#FAF7F2] border border-[#C8AA91] hover:bg-[#F2E7DB] transition-all flex items-center gap-1.5"
+              >
+                <BookOpen className="w-4 h-4 text-[#8A6048]" />
+                <span>Library</span>
+              </Link>
+              <Link
+                href="/signup/seller"
+                className="px-4.5 py-3 rounded-xl text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[#FAF7F2] bg-[#3B261C] hover:bg-[#684332] transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <Store className="w-4 h-4 text-[#C46A4A]" />
+                <span>Start Selling</span>
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {/* Quick Category Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pt-6 no-scrollbar">
+        {/* ============================================================== */}
+        {/* 2. CATEGORY NAVIGATION BAR WITH MORE ▼ DROPDOWN                */}
+        {/* ============================================================== */}
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          {/* All Button */}
           <button
             onClick={() => updateFilter("category", null)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-colors ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border ${
               !urlCategory
-                ? "bg-[#111111] text-[#FFFFFF] font-semibold"
-                : "bg-[#FFFFFF] text-[#6B4632] border border-[#E6DBD1] hover:border-[#3B2418]"
+                ? "bg-[#3B261C] text-[#FAF7F2] border-[#3B261C] shadow-sm"
+                : "bg-[#FFFFFF] text-[#3B261C] border-[#C8AA91]/60 hover:bg-[#F2E7DB]"
             }`}
           >
-            All Disciplines
+            All Products
           </button>
-          {MARKETPLACE_CATEGORIES.map((cat) => (
+
+          {/* Primary Category Pills */}
+          {PRIMARY_NAV_CATEGORIES.map((cat) => {
+            const isSelected = urlCategory.toLowerCase() === cat.slug.toLowerCase();
+            return (
+              <button
+                key={cat.id}
+                onClick={() => updateFilter("category", cat.slug)}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-[13px] font-bold whitespace-nowrap transition-all border ${
+                  isSelected
+                    ? "bg-[#3B261C] text-[#FAF7F2] border-[#3B261C] shadow-sm"
+                    : "bg-[#FFFFFF] text-[#3B261C] border-[#C8AA91]/60 hover:bg-[#F2E7DB]"
+                }`}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
+
+          {/* MORE ▼ MEGA DROPDOWN */}
+          <div className="relative" ref={moreRef}>
             <button
-              key={cat.id}
-              onClick={() => updateFilter("category", cat.slug)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-mono uppercase tracking-wider whitespace-nowrap transition-colors ${
-                urlCategory.toLowerCase() === cat.slug.toLowerCase()
-                  ? "bg-[#111111] text-[#FFFFFF] font-semibold"
-                  : "bg-[#FFFFFF] text-[#6B4632] border border-[#E6DBD1] hover:border-[#3B2418]"
+              type="button"
+              onClick={() => setMoreOpen(!moreOpen)}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-[13px] font-bold whitespace-nowrap flex items-center gap-1.5 transition-all border ${
+                moreOpen || MORE_NAV_CATEGORIES.some((c) => c.slug.toLowerCase() === urlCategory.toLowerCase())
+                  ? "bg-[#F2E7DB] text-[#3B261C] border-[#3B261C]"
+                  : "bg-[#FFFFFF] text-[#3B261C] border-[#C8AA91]/60 hover:bg-[#F2E7DB]"
               }`}
             >
-              {cat.name}
+              <span>More Categories</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${moreOpen ? "rotate-180" : ""}`} />
             </button>
-          ))}
+
+            {moreOpen && (
+              <div className="absolute top-full left-0 mt-2 w-64 rounded-2xl border border-[#C8AA91] bg-[#FFFFFF] p-3 shadow-2xl z-50 animate-in fade-in slide-in-from-top-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8A6048] px-3 py-1.5 block">
+                  Additional Disciplines
+                </span>
+                <div className="space-y-1 mt-1">
+                  {MORE_NAV_CATEGORIES.map((c) => {
+                    const isSelected = urlCategory.toLowerCase() === c.slug.toLowerCase();
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          updateFilter("category", c.slug);
+                          setMoreOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between transition-colors ${
+                          isSelected
+                            ? "bg-[#3B261C] text-[#FAF7F2]"
+                            : "text-[#3B261C] hover:bg-[#F2E7DB]"
+                        }`}
+                      >
+                        <span>{c.name}</span>
+                        <ArrowRight className="w-3 h-3 opacity-60" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Left Sidebar Filters (Desktop) */}
-        <aside className="hidden lg:block lg:col-span-1 space-y-6">
-          <div className="rounded-xl border border-[#E6DBD1] bg-[#FFFFFF] p-5 shadow-2xs">
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E6DBD1]">
-              <span className="font-mono text-xs uppercase tracking-wider text-[#3B2418] font-bold flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-[#B42318]" />
-                Filters
-              </span>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-[11px] font-mono text-[#B42318] hover:underline flex items-center gap-1"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  Reset
-                </button>
-              )}
-            </div>
+      {/* ============================================================== */}
+      {/* 3. TOOLBAR (Sort, Result Count, Filter Toggles)                */}
+      {/* ============================================================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-[#E6DBD1]">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-[#8A6048]">
+          <span>Showing</span>
+          <strong className="text-[#151311] font-extrabold">{products.length}</strong>
+          <span>of</span>
+          <strong className="text-[#151311] font-extrabold">{totalCount || products.length}</strong>
+          <span>digital products</span>
+        </div>
 
-            {/* Categories & Subcategories Accordion */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-[11px] font-mono uppercase tracking-widest text-[#6B4632] block mb-2 font-semibold">
-                  Category
-                </label>
-                <div className="space-y-1.5">
-                  {MARKETPLACE_CATEGORIES.map((cat) => {
-                    const isSelected = urlCategory.toLowerCase() === cat.slug.toLowerCase();
-                    return (
-                      <div key={cat.id}>
-                        <button
-                          type="button"
-                          onClick={() => updateFilter("category", isSelected ? null : cat.slug)}
-                          className={`w-full text-left px-2.5 py-1.5 rounded text-xs flex items-center justify-between transition-colors ${
-                            isSelected
-                              ? "bg-[#F3E9DD] text-[#3B2418] font-bold"
-                              : "text-[#6B4632] hover:bg-[#FAF8F4] hover:text-[#111111]"
-                          }`}
-                        >
-                          <span>{cat.name}</span>
-                          <span className="text-[10px] font-mono text-[#A98165]">
-                            {cat.subCategories.length}
-                          </span>
-                        </button>
+        <div className="flex items-center gap-3">
+          {/* Price & Rating Filter Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setFilterDrawerOpen(!filterDrawerOpen)}
+            className={`px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all ${
+              filterDrawerOpen
+                ? "bg-[#3B261C] text-[#FAF7F2] border-[#3B261C]"
+                : "border-[#C8AA91]/70 bg-[#FFFFFF] text-[#3B261C] hover:bg-[#F2E7DB]"
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Price & Rating Filters</span>
+          </button>
 
-                        {/* Subcategories list if selected */}
-                        {isSelected && (
-                          <div className="pl-4 pt-1 space-y-1 border-l-2 border-[#D8BFA5] my-1 ml-2">
-                            {cat.subCategories.map((sub) => {
-                              const isSubSelected = urlSub.toLowerCase() === sub.slug.toLowerCase();
-                              return (
-                                <button
-                                  key={sub.slug}
-                                  type="button"
-                                  onClick={() => updateFilter("sub", isSubSelected ? null : sub.slug)}
-                                  className={`w-full text-left text-[11px] py-1 px-1.5 rounded transition-colors ${
-                                    isSubSelected
-                                      ? "text-[#B42318] font-bold"
-                                      : "text-[#6B4632] hover:text-[#111111]"
-                                  }`}
-                                >
-                                  {sub.name}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Price Tier */}
-              <div className="pt-4 border-t border-[#E6DBD1]">
-                <label className="text-[11px] font-mono uppercase tracking-widest text-[#6B4632] block mb-2 font-semibold">
-                  Price
-                </label>
-                <div className="space-y-1.5 text-xs">
-                  {[
-                    { label: "All Prices", min: null, max: null },
-                    { label: "Under ₹1,000", min: "0", max: "100000" },
-                    { label: "₹1,000 – ₹3,000", min: "100000", max: "300000" },
-                    { label: "₹3,000+", min: "300000", max: null },
-                  ].map((tier, idx) => {
-                    const isSelected =
-                      (tier.min === null && !urlMinPrice && !urlMaxPrice) ||
-                      (tier.min === urlMinPrice && tier.max === urlMaxPrice);
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          const next = new URLSearchParams(searchParams.toString());
-                          if (tier.min) next.set("minPrice", tier.min);
-                          else next.delete("minPrice");
-                          if (tier.max) next.set("maxPrice", tier.max);
-                          else next.delete("maxPrice");
-                          next.delete("page");
-                          router.push(`/discover?${next.toString()}`);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded transition-colors ${
-                          isSelected
-                            ? "bg-[#F3E9DD] text-[#3B2418] font-bold"
-                            : "text-[#6B4632] hover:bg-[#FAF8F4] hover:text-[#111111]"
-                        }`}
-                      >
-                        {tier.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Rating Filter */}
-              <div className="pt-4 border-t border-[#E6DBD1]">
-                <label className="text-[11px] font-mono uppercase tracking-widest text-[#6B4632] block mb-2 font-semibold">
-                  Minimum Rating
-                </label>
-                <div className="space-y-1.5 text-xs">
-                  {[
-                    { label: "Any Rating", val: null },
-                    { label: "4.5+ Stars", val: "4.5" },
-                    { label: "4.0+ Stars", val: "4.0" },
-                  ].map((r, idx) => {
-                    const isSelected = (!r.val && !urlRating) || urlRating === r.val;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => updateFilter("rating", r.val)}
-                        className={`w-full text-left px-2.5 py-1.5 rounded flex items-center gap-1.5 transition-colors ${
-                          isSelected
-                            ? "bg-[#F3E9DD] text-[#3B2418] font-bold"
-                            : "text-[#6B4632] hover:bg-[#FAF8F4] hover:text-[#111111]"
-                        }`}
-                      >
-                        {r.val && <Star className="w-3 h-3 fill-[#B42318] text-[#B42318]" />}
-                        <span>{r.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Right Main Catalog Grid (3 Cols on Desktop) */}
-        <section className="lg:col-span-3 space-y-6">
-          {/* Toolbar: Count, Mobile filter button & Sort */}
-          <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#E6DBD1]">
-            <div className="flex items-center gap-2 text-xs font-mono text-[#6B4632]">
-              <span>Showing</span>
-              <strong className="text-[#111111]">{products.length}</strong>
-              <span>of</span>
-              <strong className="text-[#111111]">{totalCount || products.length}</strong>
-              <span>products</span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* Mobile Filter Toggle */}
-              <button
-                type="button"
-                onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-                className="lg:hidden px-3 py-1.5 rounded border border-[#E6DBD1] bg-[#FFFFFF] text-xs font-mono text-[#3B2418] flex items-center gap-1.5"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Filters</span>
-              </button>
-
-              {/* Sort Selector */}
-              <div className="flex items-center gap-1.5 text-xs font-mono">
-                <span className="text-[#6B4632] hidden sm:inline">Sort:</span>
-                <select
-                  value={urlSort}
-                  onChange={(e) => updateFilter("sort", e.target.value)}
-                  className="px-2.5 py-1.5 rounded-md border border-[#E6DBD1] bg-[#FFFFFF] text-xs text-[#111111] focus:outline-none focus:border-[#3B2418]"
-                >
-                  <option value="newest">Newest Releases</option>
-                  <option value="rating">Highest Rated</option>
-                  <option value="price_asc">Price: Low to High</option>
-                  <option value="price_desc">Price: High to Low</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Active Filter Chips */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-mono text-[#6B4632] uppercase">Active:</span>
-              {urlCategory && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-[#F3E9DD] text-[#3B2418] border border-[#D8BFA5]">
-                  <span>Category: {urlCategory}</span>
-                  <button onClick={() => updateFilter("category", null)} className="hover:text-[#B42318]">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {urlSub && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-[#F3E9DD] text-[#3B2418] border border-[#D8BFA5]">
-                  <span>Sub: {urlSub}</span>
-                  <button onClick={() => updateFilter("sub", null)} className="hover:text-[#B42318]">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {urlQuery && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-[#F3E9DD] text-[#3B2418] border border-[#D8BFA5]">
-                  <span>Search: &quot;{urlQuery}&quot;</span>
-                  <button onClick={() => updateFilter("query", null)} className="hover:text-[#B42318]">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {urlRating && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-[#F3E9DD] text-[#3B2418] border border-[#D8BFA5]">
-                  <span>Rating: {urlRating}★+</span>
-                  <button onClick={() => updateFilter("rating", null)} className="hover:text-[#B42318]">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              <button
-                onClick={clearAllFilters}
-                className="text-xs font-mono text-[#B42318] hover:underline ml-1"
-              >
-                Clear all
-              </button>
-            </div>
-          )}
-
-          {/* Product Grid */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-[#E6DBD1] bg-[#FFFFFF] p-5 h-72 animate-pulse flex flex-col justify-between"
-                >
-                  <div className="w-full h-36 bg-[#F3E9DD] rounded-lg" />
-                  <div className="space-y-2 mt-4">
-                    <div className="w-3/4 h-4 bg-[#E6DBD1] rounded" />
-                    <div className="w-1/2 h-3 bg-[#F3E9DD] rounded" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : products.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {products.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
-          ) : (
-            <div className="p-16 text-center rounded-xl border border-[#E6DBD1] bg-[#FFFFFF]">
-              <Package className="w-12 h-12 text-[#6B4632] mx-auto mb-3" />
-              <h3 className="font-serif text-xl text-[#111111]">No matching products found</h3>
-              <p className="text-xs text-[#6B4632] mt-1.5 font-light max-w-sm mx-auto">
-                We couldn&apos;t find any assets matching your active filters. Try expanding your search or clearing filters.
-              </p>
-              <button
-                onClick={clearAllFilters}
-                className="mt-5 px-5 py-2.5 rounded-md text-xs font-mono uppercase tracking-wider bg-[#111111] text-[#FFFFFF] hover:bg-[#3B2418] transition-colors"
-              >
-                Reset All Filters
-              </button>
-            </div>
-          )}
-
-          {/* Bottom Callout */}
-          <div className="mt-12 p-8 rounded-xl border border-[#D8BFA5] bg-[#F3E9DD]/60 flex flex-col sm:flex-row items-center justify-between gap-6">
-            <div>
-              <h3 className="font-serif text-lg font-medium text-[#111111]">
-                Have a digital product ready to publish?
-              </h3>
-              <p className="text-xs text-[#6B4632] mt-1 font-light">
-                Join our marketplace, list your assets, and earn 90% of every customer purchase.
-              </p>
-            </div>
-            <Link
-              href="/signup/seller"
-              className="px-6 py-2.5 rounded-md text-xs font-mono uppercase tracking-wider font-semibold text-[#FFFFFF] bg-[#111111] hover:bg-[#3B2418] transition-colors shrink-0"
+          {/* Sort Selector */}
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#3B261C]">
+            <span className="hidden sm:inline text-[#8A6048]">Sort:</span>
+            <select
+              value={urlSort}
+              onChange={(e) => updateFilter("sort", e.target.value)}
+              className="px-3 py-2 rounded-xl border border-[#C8AA91]/70 bg-[#FFFFFF] text-xs font-bold text-[#151311] focus:outline-none focus:border-[#3B261C]"
             >
-              Start Selling →
-            </Link>
+              <option value="newest">Newest Releases</option>
+              <option value="rating">Highest Rated</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
+            </select>
           </div>
-        </section>
+        </div>
       </div>
+
+      {/* Collapsible Filter Bar */}
+      {filterDrawerOpen && (
+        <div className="p-5 rounded-2xl border border-[#C8AA91]/70 bg-[#FAF7F2] mb-8 space-y-4 animate-in fade-in">
+          <div className="flex items-center justify-between border-b border-[#E6DBD1] pb-3">
+            <span className="text-xs uppercase font-extrabold tracking-wider text-[#3B261C] flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5 text-[#A94432]" />
+              Refine Pricing & Rating
+            </span>
+            <button
+              onClick={() => setFilterDrawerOpen(false)}
+              className="text-xs text-[#8A6048] hover:text-[#151311]"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Price Tiers */}
+            <div>
+              <span className="text-xs font-bold text-[#3B261C] block mb-2">Price Range</span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: "All Prices", min: null, max: null },
+                  { label: "Under ₹500", min: null, max: "50000" },
+                  { label: "₹500 – ₹1,500", min: "50000", max: "150000" },
+                  { label: "₹1,500 – ₹3,000", min: "150000", max: "300000" },
+                  { label: "₹3,000+", min: "300000", max: null },
+                ].map((tier, idx) => {
+                  const isSelected =
+                    (!tier.min && !tier.max && !urlMinPrice && !urlMaxPrice) ||
+                    (tier.min === urlMinPrice && tier.max === urlMaxPrice);
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        const next = new URLSearchParams(searchParams.toString());
+                        if (tier.min) next.set("minPrice", tier.min);
+                        else next.delete("minPrice");
+                        if (tier.max) next.set("maxPrice", tier.max);
+                        else next.delete("maxPrice");
+                        next.delete("page");
+                        router.push(`/discover?${next.toString()}`);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        isSelected
+                          ? "bg-[#3B261C] text-[#FAF7F2] border-[#3B261C]"
+                          : "bg-[#FFFFFF] text-[#3B261C] border-[#C8AA91]/60 hover:bg-[#F2E7DB]"
+                      }`}
+                    >
+                      {tier.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Rating */}
+            <div>
+              <span className="text-xs font-bold text-[#3B261C] block mb-2">Customer Rating</span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: "All Ratings", val: null },
+                  { label: "4.5★ & Above", val: "4.5" },
+                  { label: "4.8★ & Above", val: "4.8" },
+                ].map((r, idx) => {
+                  const isSelected = (!r.val && !urlRating) || urlRating === r.val;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => updateFilter("rating", r.val)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-1 transition-all ${
+                        isSelected
+                          ? "bg-[#3B261C] text-[#FAF7F2] border-[#3B261C]"
+                          : "bg-[#FFFFFF] text-[#3B261C] border-[#C8AA91]/60 hover:bg-[#F2E7DB]"
+                      }`}
+                    >
+                      {r.val && <Star className="w-3 h-3 fill-[#C46A4A] text-[#C46A4A]" />}
+                      <span>{r.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Filter Chips */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <span className="text-xs font-bold uppercase text-[#8A6048]">Active Filters:</span>
+          {urlCategory && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#F2E7DB] text-[#3B261C] border border-[#C8AA91]">
+              <span>Category: {urlCategory}</span>
+              <button onClick={() => updateFilter("category", null)} className="hover:text-[#A94432]">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
+          {urlQuery && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#F2E7DB] text-[#3B261C] border border-[#C8AA91]">
+              <span>Search: &quot;{urlQuery}&quot;</span>
+              <button onClick={() => updateFilter("query", null)} className="hover:text-[#A94432]">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
+          {urlRating && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#F2E7DB] text-[#3B261C] border border-[#C8AA91]">
+              <span>Rating: {urlRating}★+</span>
+              <button onClick={() => updateFilter("rating", null)} className="hover:text-[#A94432]">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
+          <button
+            onClick={clearAllFilters}
+            className="text-xs font-bold text-[#A94432] hover:underline ml-2"
+          >
+            Clear all filters
+          </button>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* 4. PRODUCT GRID (4 COLS DESKTOP, 2-3 TABLET, 1-2 MOBILE)       */}
+      {/* ============================================================== */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-[#C8AA91]/50 bg-[#FFFFFF] p-5 h-80 animate-pulse flex flex-col justify-between"
+            >
+              <div className="w-full h-44 bg-[#F2E7DB] rounded-xl" />
+              <div className="space-y-2 mt-4">
+                <div className="w-3/4 h-5 bg-[#E6DBD1] rounded-lg" />
+                <div className="w-1/2 h-4 bg-[#E6DBD1] rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : products.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {products.map((p) => (
+            <ProductCard key={p.id} product={p} />
+          ))}
+        </div>
+      ) : (
+        <div className="py-20 text-center rounded-3xl border border-dashed border-[#C8AA91] bg-[#FFFFFF] p-8 max-w-lg mx-auto">
+          <Layers className="w-12 h-12 text-[#8A6048] mx-auto mb-4" />
+          <h3 className="text-xl font-sans font-bold text-[#151311]">No products found</h3>
+          <p className="text-sm text-[#684332] mt-2 mb-6">
+            We couldn&apos;t find any digital products matching your active filters.
+          </p>
+          <button
+            onClick={clearAllFilters}
+            className="px-6 py-2.5 rounded-xl bg-[#3B261C] text-[#FAF7F2] font-bold text-xs uppercase"
+          >
+            Clear Filters & View Catalog
+          </button>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* 5. PAGINATION                                                  */}
+      {/* ============================================================== */}
+      {totalPages > 1 && (
+        <div className="mt-14 pt-8 border-t border-[#E6DBD1] flex items-center justify-between">
+          <button
+            disabled={urlPage <= 1}
+            onClick={() => updateFilter("page", String(urlPage - 1))}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#C8AA91] bg-[#FFFFFF] text-xs font-bold text-[#3B261C] hover:bg-[#F2E7DB] disabled:opacity-40 disabled:pointer-events-none"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Previous</span>
+          </button>
+
+          <span className="text-xs font-bold text-[#8A6048]">
+            Page {urlPage} of {totalPages}
+          </span>
+
+          <button
+            disabled={urlPage >= totalPages}
+            onClick={() => updateFilter("page", String(urlPage + 1))}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#C8AA91] bg-[#FFFFFF] text-xs font-bold text-[#3B261C] hover:bg-[#F2E7DB] disabled:opacity-40 disabled:pointer-events-none"
+          >
+            <span>Next</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -502,8 +543,16 @@ export default function DiscoverPage() {
   return (
     <SpatialBackground>
       <MarketplaceNavbar />
-      <main className="flex-1 w-full pt-16 sm:pt-20">
-        <Suspense fallback={<div className="p-12 text-center text-xs font-mono text-[#6B4632]">Loading catalog discovery...</div>}>
+      <main className="flex-1 w-full pt-[73px]">
+        <Suspense
+          fallback={
+            <div className="max-w-7xl mx-auto px-4 py-24 text-center">
+              <span className="text-sm font-bold text-[#8A6048] animate-pulse">
+                Loading marketplace catalog...
+              </span>
+            </div>
+          }
+        >
           <DiscoverContent />
         </Suspense>
       </main>

@@ -27,7 +27,8 @@
     "test:all": "tsx scripts/run-all-test-suites.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "db:seed:admin": "tsx scripts/seed-admin.ts"
+    "db:seed:admin": "tsx scripts/seed-admin.ts",
+    "demo:products": "tsx scripts/dev/create-marketplace-demo-data.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.21.1",
