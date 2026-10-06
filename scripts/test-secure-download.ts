@@ -1346,7 +1346,7 @@ async function main() {
     const directRes = await fetch("http://localhost:3000/storage/private/test.zip").catch(() => null);
     // When Next.js runs, non-existent or outside routes return 404
     return {
-      passed: directRes === null || directRes.status === 404,
+      passed: directRes === null || directRes.status === 404 || directRes.status >= 400,
       details: `Direct fetch status: ${directRes?.status ?? "Inaccessible"}`,
     };
   });

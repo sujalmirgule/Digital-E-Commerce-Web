@@ -25,11 +25,13 @@ import { SellerAuthProvider, useSellerAuth } from "./SellerAuthContext";
 const SELLER_NAV = [
   { href: "/seller", label: "Dashboard", icon: Layers },
   { href: "/seller/products", label: "Products", icon: Package },
-  { href: "/seller/sales", label: "Orders", icon: TrendingUp },
+  { href: "/seller/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/seller/sales", label: "Sales", icon: TrendingUp },
   { href: "/seller/earnings", label: "Earnings", icon: Receipt },
-  { href: "/seller/sales?view=analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/seller/ledger", label: "Ledger", icon: BarChart3 },
   { href: "/seller/reviews", label: "Reviews", icon: Star },
-  { href: "/seller/profile", label: "Settings", icon: Settings },
+  { href: "/seller/profile", label: "Profile", icon: Settings },
+  { href: "/seller/settings", label: "Settings", icon: Settings },
 ];
 
 function SellerShell({ children }: { children: React.ReactNode }) {

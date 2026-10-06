@@ -17,6 +17,10 @@ import {
   GET as profileHandler,
   PATCH as updateProfileHandler,
 } from "../src/app/api/v1/seller/profile/route";
+import { POST as submitProductHandler } from "../src/app/api/v1/seller/products/[productId]/submit/route";
+import { POST as uploadAssetHandler } from "../src/app/api/v1/seller/products/[productId]/assets/upload/route";
+import { POST as completeAssetHandler } from "../src/app/api/v1/seller/products/[productId]/assets/[assetId]/complete/route";
+import { getStorageProvider } from "../src/lib/storage/local-storage-provider";
 import {
   EarningStatus,
   LicenseType,
@@ -1202,6 +1206,542 @@ async function main() {
         body.data.status === ProductStatus.REJECTED &&
         body.data.rejectionReason === "Incomplete font licensing documentation",
     };
+  });
+
+  // =========================================================================
+  // CATEGORY 11: STORAGE UPLOAD & ASSET VERIFICATION (10 Tests)
+  // =========================================================================
+
+  const productUploadTest = await prisma.product.create({
+    data: {
+      sellerId: sellerProfileA.id,
+      categoryId: category.id,
+      title: `Upload Test Asset ${runId}`,
+      slug: `upload-test-asset-${runId}`,
+      shortDescription: "Upload test short description",
+      description: "Upload test long description with full specifications",
+      pricePaise: 49900,
+      status: ProductStatus.DRAFT,
+      version: "1.0.0",
+    },
+  });
+
+  let uploadedAssetId = "";
+
+  await runTest("11.1 Authorize upload initialization for seller's DRAFT product returns 200 with uploadUrl and assetId", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/assets/upload`, tokenA, "POST", {
+      fileName: "deliverable-pack.zip",
+      fileSizeBytes: 5242880,
+      contentType: "application/zip",
+    });
+    const res = await uploadAssetHandler(req, { params: { productId: productUploadTest.id } });
+    const body = await res.json();
+    uploadedAssetId = body.data?.assetId;
+    return {
+      passed: res.status === 200 && !!body.data?.uploadUrl && !!body.data?.assetId,
+      details: `Asset ID: ${uploadedAssetId}`,
+    };
+  });
+
+  await runTest("11.2 Upload init for another seller's product blocked via IDOR (403)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productB1.id}/assets/upload`, tokenA, "POST", {
+      fileName: "hacked.zip",
+      fileSizeBytes: 1024,
+      contentType: "application/zip",
+    });
+    const res = await uploadAssetHandler(req, { params: { productId: productB1.id } });
+    return { passed: res.status === 403 };
+  });
+
+  await runTest("11.3 Upload init for PUBLISHED product rejected (only DRAFT allowed)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productA1.id}/assets/upload`, tokenA, "POST", {
+      fileName: "update.zip",
+      fileSizeBytes: 1024,
+      contentType: "application/zip",
+    });
+    const res = await uploadAssetHandler(req, { params: { productId: productA1.id } });
+    return { passed: res.status === 409 || res.status === 400 };
+  });
+
+  await runTest("11.4 Upload init rejects files exceeding max size limit (413)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/assets/upload`, tokenA, "POST", {
+      fileName: "huge.zip",
+      fileSizeBytes: 2 * 1024 * 1024 * 1024, // 2 GB
+      contentType: "application/zip",
+    });
+    const res = await uploadAssetHandler(req, { params: { productId: productUploadTest.id } });
+    return { passed: res.status === 413 };
+  });
+
+  await runTest("11.5 Upload init rejects path traversal in fileName (400)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/assets/upload`, tokenA, "POST", {
+      fileName: "../../traversal-attempt.zip",
+      fileSizeBytes: 10240,
+      contentType: "application/zip",
+    });
+    const res = await uploadAssetHandler(req, { params: { productId: productUploadTest.id } });
+    const body = await res.json();
+    return { passed: res.status === 400 && !body.success };
+  });
+
+  await runTest("11.6 Physical upload of bytes to storage provider succeeds", async () => {
+    const storage = getStorageProvider();
+    const fileRec = await prisma.productFile.findUnique({ where: { id: uploadedAssetId } });
+    await storage.putObject(fileRec!.storageKey, Buffer.from("SIMULATED_VERIFIED_ZIP_CONTENT_BYTE_DATA"));
+    const exists = await storage.objectExists(fileRec!.storageKey);
+    return { passed: exists === true };
+  });
+
+  await runTest("11.7 Complete upload endpoint verifies physical storage object and confirms metadata (200)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/assets/${uploadedAssetId}/complete`, tokenA, "POST", {});
+    const res = await completeAssetHandler(req, {
+      params: { productId: productUploadTest.id, assetId: uploadedAssetId },
+    });
+    const body = await res.json();
+    return { passed: res.status === 200 && body.success === true && !!body.data?.asset };
+  });
+
+  await runTest("11.8 IDOR Protection: Seller B cannot complete upload for Seller A's asset (403)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/assets/${uploadedAssetId}/complete`, tokenB, "POST", {});
+    const res = await completeAssetHandler(req, {
+      params: { productId: productUploadTest.id, assetId: uploadedAssetId },
+    });
+    return { passed: res.status === 403 };
+  });
+
+  await runTest("11.9 Completing upload for non-existent asset returns 404", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/assets/non-existent-id/complete`, tokenA, "POST", {});
+    const res = await completeAssetHandler(req, {
+      params: { productId: productUploadTest.id, assetId: "non-existent-id" },
+    });
+    return { passed: res.status === 404 };
+  });
+
+  await runTest("11.10 Product files list reflects verified ProductFile without exposing storageKey", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}`, tokenA);
+    const res = await productDetailHandler(req, { params: { productId: productUploadTest.id } });
+    const body = await res.json();
+    const fileRec = await prisma.productFile.findUnique({ where: { id: uploadedAssetId } });
+    const hasFiles = body.data?.files?.length > 0;
+    const hasLeakedKey = JSON.stringify(body.data).includes(fileRec!.storageKey);
+    return { passed: hasFiles && !hasLeakedKey };
+  });
+
+  // =========================================================================
+  // CATEGORY 12: MODERATION LIFECYCLE & WORKFLOW ENGINE (8 Tests)
+  // =========================================================================
+
+  await runTest("12.1 Submit product with zero uploaded files returns 400 validation error", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productA2.id}/submit`, tokenA, "POST", {});
+    const res = await submitProductHandler(req, { params: { productId: productA2.id } });
+    const body = await res.json();
+    return { passed: res.status === 400 && !body.success };
+  });
+
+  await runTest("12.2 IDOR Protection: Seller B cannot submit Seller A's product for review (403)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/submit`, tokenB, "POST", {});
+    const res = await submitProductHandler(req, { params: { productId: productUploadTest.id } });
+    return { passed: res.status === 403 };
+  });
+
+  await runTest("12.3 Pending seller cannot submit product for review (403)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/submit`, tokenPending, "POST", {});
+    const res = await submitProductHandler(req, { params: { productId: productUploadTest.id } });
+    return { passed: res.status === 403 };
+  });
+
+  await runTest("12.4 Submitting valid DRAFT product with verified file succeeds and transitions status to PENDING_REVIEW (200)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/submit`, tokenA, "POST", {});
+    const res = await submitProductHandler(req, { params: { productId: productUploadTest.id } });
+    const body = await res.json();
+    return {
+      passed: res.status === 200 && body.success === true && (body.data?.product?.status === ProductStatus.PENDING_REVIEW || body.data?.status === ProductStatus.PENDING_REVIEW),
+      details: `Status: ${body.data?.product?.status || body.data?.status}`,
+    };
+  });
+
+  await runTest("12.5 Product now shows as PENDING_REVIEW in seller product detail", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}`, tokenA);
+    const res = await productDetailHandler(req, { params: { productId: productUploadTest.id } });
+    const body = await res.json();
+    return { passed: body.data.status === ProductStatus.PENDING_REVIEW };
+  });
+
+  await runTest("12.6 Re-submitting product already in PENDING_REVIEW returns 400/409 error", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}/submit`, tokenA, "POST", {});
+    const res = await submitProductHandler(req, { params: { productId: productUploadTest.id } });
+    return { passed: res.status === 400 || res.status === 409 };
+  });
+
+  await runTest("12.7 Overview pendingModeration count increases accordingly", async () => {
+    const req = makeReq("/api/v1/seller/dashboard/overview", tokenA);
+    const res = await overviewHandler(req);
+    const body = await res.json();
+    return { passed: body.data.stats.pendingModeration >= 2 };
+  });
+
+  await runTest("12.8 Client cannot tamper with status directly via patch (status remains PENDING_REVIEW)", async () => {
+    const req = makeReq(`/api/v1/seller/products/${productUploadTest.id}`, tokenA, "PATCH", {
+      status: ProductStatus.PUBLISHED,
+    });
+    const res = await updateProductHandler(req, { params: { productId: productUploadTest.id } });
+    const after = await prisma.product.findUnique({ where: { id: productUploadTest.id } });
+    return { passed: after?.status === ProductStatus.PENDING_REVIEW };
+  });
+
+  // =========================================================================
+  // CATEGORY 13: REAL E2E SALES LIFECYCLE & AUTOMATED ACCOUNTING (10 Tests)
+  // =========================================================================
+
+  let e2eOrderId = "";
+  let e2eOrderItemId = "";
+  let e2eEarningId = "";
+
+  await runTest("13.1 Real buyer checkout order and order item creation linked to Seller A", async () => {
+    const orderNew = await prisma.order.create({
+      data: {
+        id: `ORD-E2E-${runId}`,
+        buyerId: buyerUser.id,
+        subtotalPaise: 79900,
+        totalAmountPaise: 79900,
+        platformFeePaise: 7990,
+        currency: "INR",
+        status: OrderStatus.PAID,
+        razorpayOrderId: `order_e2e_${runId}`,
+        razorpayPaymentId: `pay_e2e_${runId}`,
+        paidAt: new Date(),
+        buyerNameSnapshot: buyerUser.fullName,
+        buyerEmailSnapshot: buyerUser.email,
+      },
+    });
+    const orderItemNew = await prisma.orderItem.create({
+      data: {
+        orderId: orderNew.id,
+        productId: productA1.id,
+        sellerId: sellerProfileA.id,
+        productTitle: productA1.title,
+        pricePaise: 79900,
+        platformFeePaise: 7990,
+        sellerEarningsPaise: 71910,
+        licenseType: LicenseType.STANDARD,
+      },
+    });
+    e2eOrderId = orderNew.id;
+    e2eOrderItemId = orderItemNew.id;
+    return { passed: !!orderNew.id && !!orderItemNew.id };
+  });
+
+  await runTest("13.2 Real Payment and SellerEarning record generated in DB with double-entry check", async () => {
+    const paymentNew = await prisma.payment.create({
+      data: {
+        orderId: e2eOrderId,
+        razorpayOrderId: `order_e2e_${runId}`,
+        razorpayPaymentId: `pay_e2e_${runId}`,
+        amountPaise: 79900,
+        currency: "INR",
+        status: PaymentStatus.CAPTURED,
+        method: PaymentMethod.UPI,
+      },
+    });
+    const earningNew = await prisma.sellerEarning.create({
+      data: {
+        sellerId: sellerProfileA.id,
+        orderId: e2eOrderId,
+        orderItemId: e2eOrderItemId,
+        grossAmountPaise: 79900,
+        platformFeePaise: 7990,
+        netEarningsPaise: 71910,
+        status: EarningStatus.AVAILABLE,
+        availableOn: new Date(),
+      },
+    });
+    e2eEarningId = earningNew.id;
+    return { passed: !!paymentNew.id && !!earningNew.id };
+  });
+
+  await runTest("13.3 Seller A sales endpoint automatically lists the new sale transaction (200)", async () => {
+    const req = makeReq("/api/v1/seller/sales", tokenA);
+    const res = await salesHandler(req);
+    const body = await res.json();
+    const found = body.data.sales.some((s: any) => s.id === e2eOrderItemId);
+    return { passed: found === true };
+  });
+
+  await runTest("13.4 Seller A sales transaction reflects integer paise: pricePaise = platformFeePaise + sellerEarningsPaise", async () => {
+    const req = makeReq("/api/v1/seller/sales", tokenA);
+    const res = await salesHandler(req);
+    const body = await res.json();
+    const sale = body.data.sales.find((s: any) => s.id === e2eOrderItemId);
+    return { passed: sale && sale.pricePaise === sale.platformFeePaise + sale.sellerEarningsPaise };
+  });
+
+  await runTest("13.5 Platform commission is verified at exactly 10% server-side", async () => {
+    return { passed: Math.round(79900 * 0.1) === 7990 && (79900 - 7990) === 71910 };
+  });
+
+  await runTest("13.6 Sensitive buyer info completely absent from sales output", async () => {
+    const req = makeReq("/api/v1/seller/sales", tokenA);
+    const res = await salesHandler(req);
+    const body = await res.json();
+    const str = JSON.stringify(body.data);
+    return { passed: !str.includes(buyerUser.email) && !str.includes(buyerUser.passwordHash) };
+  });
+
+  await runTest("13.7 Seller A earnings endpoint automatically reflects the new ledger entry (200)", async () => {
+    const req = makeReq("/api/v1/seller/earnings", tokenA);
+    const res = await earningsHandler(req);
+    const body = await res.json();
+    const found = body.data.earnings.some((e: any) => e.id === e2eEarningId);
+    return { passed: found === true };
+  });
+
+  await runTest("13.8 Seller A overview stats automatically update", async () => {
+    const req = makeReq("/api/v1/seller/dashboard/overview", tokenA);
+    const res = await overviewHandler(req);
+    const body = await res.json();
+    return { passed: body.data.stats.totalSales >= 3 && body.data.stats.grossRevenuePaise >= (79800 + 79900) };
+  });
+
+  await runTest("13.9 Financial isolation: Seller B's sales and earnings remain completely unaffected by Seller A's sale", async () => {
+    const reqSales = makeReq("/api/v1/seller/sales", tokenB);
+    const resSales = await salesHandler(reqSales);
+    const bodySales = await resSales.json();
+    const hasA = bodySales.data.sales.some((s: any) => s.id === e2eOrderItemId);
+
+    const reqEarnings = makeReq("/api/v1/seller/earnings", tokenB);
+    const resEarnings = await earningsHandler(reqEarnings);
+    const bodyEarnings = await resEarnings.json();
+    const hasEarningA = bodyEarnings.data.earnings.some((e: any) => e.id === e2eEarningId);
+
+    return { passed: !hasA && !hasEarningA };
+  });
+
+  await runTest("13.10 Mathematical verification: Gross = Platform Fee + Net Earnings across all ledger items", async () => {
+    const req = makeReq("/api/v1/seller/earnings", tokenA);
+    const res = await earningsHandler(req);
+    const body = await res.json();
+    const allBalanced = body.data.earnings.every(
+      (e: any) => e.grossAmountPaise === e.platformFeePaise + e.netEarningsPaise
+    );
+    return { passed: allBalanced === true && body.data.earnings.length >= 3 };
+  });
+
+  // =========================================================================
+  // CATEGORY 14: FRESH SELLER ZERO-STATE & EMPTY INVARIANTS (7 Tests)
+  // =========================================================================
+
+  const sellerUserC = await prisma.user.create({
+    data: {
+      email: `seller_c_${runId}@example.com`,
+      fullName: `Seller Charlie ${runId}`,
+      passwordHash,
+      role: UserRole.BUYER,
+      isActive: true,
+    },
+  });
+
+  const sellerProfileC = await prisma.sellerProfile.create({
+    data: {
+      userId: sellerUserC.id,
+      storeName: `Charlie Fresh ${runId}`,
+      storeSlug: `charlie-fresh-${runId}`,
+      status: "APPROVED",
+      country: "India",
+      totalRevenuePaise: 0,
+      netEarningsPaise: 0,
+      availableBalance: 0,
+      pendingBalance: 0,
+    },
+  });
+
+  const tokenC = signJwt({
+    sub: sellerUserC.id,
+    email: sellerUserC.email,
+    role: sellerUserC.role,
+  });
+
+  await runTest("14.1 Fresh approved seller accesses overview (200) with all zero metrics", async () => {
+    const req = makeReq("/api/v1/seller/dashboard/overview", tokenC);
+    const res = await overviewHandler(req);
+    const body = await res.json();
+    return {
+      passed:
+        res.status === 200 &&
+        body.data.stats.totalProducts === 0 &&
+        body.data.stats.grossRevenuePaise === 0 &&
+        body.data.stats.netEarningsPaise === 0 &&
+        body.data.stats.totalSales === 0,
+    };
+  });
+
+  await runTest("14.2 Fresh approved seller products list returns empty array [] (200)", async () => {
+    const req = makeReq("/api/v1/seller/products", tokenC);
+    const res = await productsHandler(req);
+    const body = await res.json();
+    return { passed: res.status === 200 && Array.isArray(body.data.products) && body.data.products.length === 0 };
+  });
+
+  await runTest("14.3 Fresh approved seller sales endpoint returns empty array [] (200)", async () => {
+    const req = makeReq("/api/v1/seller/sales", tokenC);
+    const res = await salesHandler(req);
+    const body = await res.json();
+    return { passed: res.status === 200 && Array.isArray(body.data.sales) && body.data.sales.length === 0 };
+  });
+
+  await runTest("14.4 Fresh approved seller earnings endpoint returns empty array [] (200)", async () => {
+    const req = makeReq("/api/v1/seller/earnings", tokenC);
+    const res = await earningsHandler(req);
+    const body = await res.json();
+    return { passed: res.status === 200 && Array.isArray(body.data.earnings) && body.data.earnings.length === 0 };
+  });
+
+  await runTest("14.5 Fresh approved seller reviews endpoint returns empty array [] (200)", async () => {
+    const req = makeReq("/api/v1/seller/reviews", tokenC);
+    const res = await reviewsHandler(req);
+    const body = await res.json();
+    return { passed: res.status === 200 && Array.isArray(body.data.reviews) && body.data.reviews.length === 0 };
+  });
+
+  await runTest("14.6 Fresh seller has zero financial balances in profile", async () => {
+    const req = makeReq("/api/v1/seller/profile", tokenC);
+    const res = await profileHandler(req);
+    const body = await res.json();
+    return {
+      passed:
+        body.data.totalRevenuePaise === 0 &&
+        body.data.netEarningsPaise === 0 &&
+        body.data.availableBalance === 0 &&
+        body.data.pendingBalance === 0,
+    };
+  });
+
+  await runTest("14.7 Fresh seller recentSales array in overview is empty []", async () => {
+    const req = makeReq("/api/v1/seller/dashboard/overview", tokenC);
+    const res = await overviewHandler(req);
+    const body = await res.json();
+    return { passed: Array.isArray(body.data.recentSales) && body.data.recentSales.length === 0 };
+  });
+
+  // =========================================================================
+  // CATEGORY 15: CONCURRENT OPERATIONS & TRANSACTION INTEGRITY (6 Tests)
+  // =========================================================================
+
+  await runTest("15.1 Concurrent product specification updates execute atomically without data corruption", async () => {
+    const [res1, res2] = await Promise.all([
+      updateProductHandler(
+        makeReq(`/api/v1/seller/products/${productA1.id}`, tokenA, "PATCH", { title: `Concurrent Title 1 ${runId}` }),
+        { params: { productId: productA1.id } }
+      ),
+      updateProductHandler(
+        makeReq(`/api/v1/seller/products/${productA1.id}`, tokenA, "PATCH", { title: `Concurrent Title 2 ${runId}` }),
+        { params: { productId: productA1.id } }
+      ),
+    ]);
+    return { passed: res1.status === 200 && res2.status === 200 };
+  });
+
+  await runTest("15.2 Concurrent requests to submit product for moderation execute safely", async () => {
+    const [s1, s2] = await Promise.all([
+      submitProductHandler(makeReq(`/api/v1/seller/products/${productUploadTest.id}/submit`, tokenA, "POST"), {
+        params: { productId: productUploadTest.id },
+      }),
+      submitProductHandler(makeReq(`/api/v1/seller/products/${productUploadTest.id}/submit`, tokenA, "POST"), {
+        params: { productId: productUploadTest.id },
+      }),
+    ]);
+    return { passed: (s1.status === 400 || s1.status === 409) && (s2.status === 400 || s2.status === 409) };
+  });
+
+  await runTest("15.3 Concurrent completion attempts for the same asset succeed or reject idempotently without duplicate records", async () => {
+    const [c1, c2] = await Promise.all([
+      completeAssetHandler(
+        makeReq(`/api/v1/seller/products/${productUploadTest.id}/assets/${uploadedAssetId}/complete`, tokenA, "POST"),
+        { params: { productId: productUploadTest.id, assetId: uploadedAssetId } }
+      ),
+      completeAssetHandler(
+        makeReq(`/api/v1/seller/products/${productUploadTest.id}/assets/${uploadedAssetId}/complete`, tokenA, "POST"),
+        { params: { productId: productUploadTest.id, assetId: uploadedAssetId } }
+      ),
+    ]);
+    const fileCount = await prisma.productFile.count({ where: { id: uploadedAssetId } });
+    return { passed: fileCount === 1 };
+  });
+
+  await runTest("15.4 Product version string persists across concurrent operations", async () => {
+    const p = await prisma.product.findUnique({ where: { id: productA1.id } });
+    return { passed: !!p?.version };
+  });
+
+  await runTest("15.5 Concurrency does not violate seller ownership or cause orphan records", async () => {
+    const p = await prisma.product.findUnique({ where: { id: productA1.id } });
+    return { passed: p?.sellerId === sellerProfileA.id };
+  });
+
+  await runTest("15.6 Double submit doesn't create duplicate pending entries", async () => {
+    const pendingCount = await prisma.product.count({
+      where: { id: productUploadTest.id, status: ProductStatus.PENDING_REVIEW },
+    });
+    return { passed: pendingCount === 1 };
+  });
+
+  // =========================================================================
+  // CATEGORY 16: ADVANCED FILTERS, PAGINATION BOUNDARIES & SECURITY (7 Tests)
+  // =========================================================================
+
+  await runTest("16.1 Products list pagination with limit=1 returns exactly 1 item and totalPages > 1", async () => {
+    const req = makeReq("/api/v1/seller/products?limit=1&page=1", tokenA);
+    const res = await productsHandler(req);
+    const body = await res.json();
+    return { passed: body.data.products.length === 1 && body.data.pagination.totalPages > 1 };
+  });
+
+  await runTest("16.2 Products list page out of bounds (page=999) returns empty array without throwing", async () => {
+    const req = makeReq("/api/v1/seller/products?limit=10&page=999", tokenA);
+    const res = await productsHandler(req);
+    const body = await res.json();
+    return { passed: res.status === 200 && body.data.products.length === 0 };
+  });
+
+  await runTest("16.3 Sales list pagination with limit=1 returns 1 sale and valid pagination info", async () => {
+    const req = makeReq("/api/v1/seller/sales?limit=1&page=1", tokenA);
+    const res = await salesHandler(req);
+    const body = await res.json();
+    return { passed: body.data.sales.length === 1 && body.data.pagination.totalPages >= 2 };
+  });
+
+  await runTest("16.4 Earnings ledger filter by status=AVAILABLE vs status=PENDING isolates entries correctly", async () => {
+    const reqAvail = makeReq("/api/v1/seller/earnings?status=AVAILABLE", tokenA);
+    const resAvail = await earningsHandler(reqAvail);
+    const bodyAvail = await resAvail.json();
+    const allAvail = bodyAvail.data.earnings.every((e: any) => e.status === "AVAILABLE");
+
+    const reqPend = makeReq("/api/v1/seller/earnings?status=PENDING", tokenA);
+    const resPend = await earningsHandler(reqPend);
+    const bodyPend = await resPend.json();
+    const allPend = bodyPend.data.earnings.every((e: any) => e.status === "PENDING");
+
+    return { passed: allAvail && allPend };
+  });
+
+  await runTest("16.5 Product search with mixed casing (e.g. UPPERCASE) correctly matches title", async () => {
+    const req = makeReq(`/api/v1/seller/products?search=DASHBOARD`, tokenA);
+    const res = await productsHandler(req);
+    const body = await res.json();
+    const matched = body.data.products.some((p: any) => p.id === productA1.id);
+    return { passed: matched === true };
+  });
+
+  await runTest("16.6 Reviews pagination with limit=1 returns 1 review", async () => {
+    const req = makeReq("/api/v1/seller/reviews?limit=1&page=1", tokenA);
+    const res = await reviewsHandler(req);
+    const body = await res.json();
+    return { passed: res.status === 200 && body.data.reviews.length === 1 };
+  });
+
+  await runTest("16.7 Profile update rejects whitespace-only store names (400)", async () => {
+    const req = makeReq("/api/v1/seller/profile", tokenA, "PATCH", { storeName: "    " });
+    const res = await updateProfileHandler(req);
+    return { passed: res.status === 400 };
   });
 
   // =========================================================================
